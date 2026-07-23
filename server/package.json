@@ -1,0 +1,25 @@
+{
+  "name": "marketpane-server",
+  "version": "1.0.0",
+  "description": "Local backend for the MarketPane extension - holds the Gemini API key and proxies Yahoo Finance data so neither ever ships inside extension code",
+  "type": "module",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

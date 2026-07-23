@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * This stylesheet is only ever injected inside our own shadow root (see
+ * content/main.tsx) - never into the host page's <head> - so Tailwind's
+ * `*` reset and any `html`/`body`/`:root` rules below are scoped by the
+ * browser to that shadow tree and cannot leak onto (or be overridden by)
+ * the page we're running on. The wrapper element is `.marketpane-root`
+ * rather than `body`, since there is no real <body> inside a shadow tree.
+ */
+
+@layer base {
+  .marketpane-root * {
+    @apply border-ink/15;
+  }
+
+  .marketpane-root {
+    @apply font-body text-ink antialiased;
+  }
+
+  .marketpane-root ::selection {
+    @apply bg-vermilion/25 text-ink;
+  }
+
+  .marketpane-root :focus-visible {
+    @apply outline-none ring-2 ring-vermilion ring-offset-2 ring-offset-bone;
+  }
+
+  /* .dark lands on .marketpane-root itself (see useTheme.ts), not an
+     ancestor of it, so these can't use the dark: variant the way every
+     descendant element does - written explicitly instead. */
+  .marketpane-root.dark * {
+    @apply border-bone/15;
+  }
+
+  .marketpane-root.dark {
+    @apply text-bone;
+  }
+
+  .marketpane-root.dark ::selection {
+    @apply bg-vermilion/30 text-bone;
+  }
+
+  .marketpane-root.dark :focus-visible {
+    @apply ring-offset-ink;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marketpane-root *,
+    .marketpane-root *::before,
+    .marketpane-root *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .scrollbar-spark {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.ink / 25%') transparent;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink/25;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink/40;
+  }
+
+  .scrollbar-ink {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.bone / 25%') transparent;
+  }
+
+  .scrollbar-ink::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scrollbar-ink::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-ink::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-bone/25;
+  }
+
+  .scrollbar-ink::-webkit-scrollbar-thumb:hover {
+    @apply bg-bone/40;
+  }
+}
