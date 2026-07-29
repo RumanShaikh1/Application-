@@ -1,0 +1,19 @@
+{
+  "id": "placement-market-wide-drop-01",
+  "context": "A large consumer-goods stock you follow has fallen 15% in a week, in line with a broad market sell-off triggered by global rate-hike fears. This stock's own historical pullbacks of this size have fully recovered within 2-3 months each time, and there is no company-specific news.",
+  "block": {
+    "question": "Given only what you can see, is the risk here skewed to the downside, upside, or roughly balanced?",
+    "readOptions": [
+      { "id": "downside", "label": "Skewed to the downside", "correct": false },
+      { "id": "upside", "label": "Skewed to the upside", "correct": false },
+      { "id": "balanced", "label": "Roughly balanced", "correct": true }
+    ],
+    "factorQuestion": "Which of these support that read?",
+    "factorOptions": [
+      { "id": "market_wide", "label": "The drop tracked a broad market sell-off, not company-specific news", "correct": true },
+      { "id": "recovered_before", "label": "This stock has recovered from similarly sized drops before", "correct": true },
+      { "id": "pct_drop", "label": "The price fell 15% in a week", "correct": false },
+      { "id": "volume_during_drop", "label": "Trading volume was higher than usual during the drop", "correct": false }
+    ]
+  }
+}

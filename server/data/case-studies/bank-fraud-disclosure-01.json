@@ -1,0 +1,102 @@
+{
+  "id": "bank-fraud-disclosure-01",
+  "title": "The Unrecorded Guarantees",
+  "maskedContext": "A large, government-owned bank - considered one of the more conservative, systemically important lenders. In February of Year 0, the bank disclosed that a single branch had issued fraudulent guarantees to a handful of related jewelry and diamond-export companies over several years, worth an amount equal to a meaningful fraction of the bank's entire net worth. The guarantees were never recorded in the bank's core system, so oversight had missed them for years.",
+  "facts": [
+    {
+      "id": "discovered_on_staff_change",
+      "label": "How it came to light",
+      "detail": "The fraudulent guarantees were only discovered after the employee who had issued them for years retired, and a replacement, following normal process, asked the client companies for cash margin before issuing further guarantees."
+    },
+    {
+      "id": "seven_years_undetected",
+      "label": "How long it ran",
+      "detail": "The companies receiving these guarantees had reportedly been availing this facility from the same branch for around seven years without it surfacing in any audit."
+    },
+    {
+      "id": "systems_not_linked",
+      "label": "The control gap",
+      "detail": "The bank's core banking system and its international guarantee-messaging system were not properly linked, which is how transactions worth this much could avoid appearing in official records for years."
+    }
+  ],
+  "redHerringFacts": [
+    {
+      "id": "retail_loan_growth",
+      "label": "Retail lending growth",
+      "detail": "The bank had reported a rise in retail loan disbursements the same quarter as the disclosure."
+    },
+    {
+      "id": "brokerage_buy_rating",
+      "label": "A recent 'buy' rating",
+      "detail": "A well-known brokerage had maintained a 'buy' rating on the stock just a month before the disclosure, citing improving asset-quality trends."
+    }
+  ],
+  "tiers": [
+    {
+      "kind": "risk_read",
+      "id": "risk-read",
+      "block": {
+        "question": "How do you read this?",
+        "readOptions": [
+          { "id": "solvency_risk", "label": "This is a severe, capital-eroding event - a large, unrecorded, multi-year fraud at a systemically important bank is a provisioning and solvency risk, not routine bad news", "correct": true },
+          { "id": "isolated_branch_issue", "label": "This is an isolated branch-level issue that won't affect the bank as a whole", "correct": false },
+          { "id": "already_priced_in", "label": "Since the amount is now known, the worst is already priced in and the risk is over", "correct": false }
+        ],
+        "factorQuestion": "Which of these support that read?",
+        "factorOptions": [
+          { "id": "provisioning_scale", "label": "The fraudulent amount is large enough relative to the bank's net worth to require major additional provisioning", "correct": true },
+          { "id": "bypassed_core_system", "label": "The fraud went undetected for years because it bypassed the bank's core system entirely - a control failure, not a one-off mistake", "correct": true },
+          { "id": "oversight_doubt_bankwide", "label": "A single branch being able to issue guarantees this large, undetected, raises doubts about oversight bank-wide, not just at that branch", "correct": true },
+          { "id": "other_lines_fine", "label": "The bank's other business lines were reportedly performing well that quarter", "correct": false },
+          { "id": "already_fallen_some", "label": "The stock had already fallen somewhat before the news broke", "correct": false }
+        ]
+      }
+    },
+    {
+      "kind": "sizing",
+      "id": "sizing",
+      "prompt": "Say this bank was 12% of your portfolio going into this disclosure. Given a multi-year, systemic control failure of this size, how far would you trim?",
+      "buckets": [
+        { "id": "b12", "label": "Keep it at 12% - hold as is", "value": 12 },
+        { "id": "b8", "label": "Trim to 8%", "value": 8 },
+        { "id": "b5", "label": "Trim to 5%", "value": 5 },
+        { "id": "b2", "label": "Trim to 2%", "value": 2 },
+        { "id": "b0", "label": "Exit the position entirely (0%)", "value": 0 }
+      ],
+      "bands": [
+        { "id": "sound", "min": 0, "max": 5, "credit": "full" },
+        { "id": "adjacent", "min": 6, "max": 8, "credit": "partial" }
+      ],
+      "reasonQuestion": "Why that size?",
+      "reasonOptions": [
+        { "id": "control_failure_warrants_real_cut", "label": "A years-long undetected control failure this large calls for a meaningfully lower position, not just a token trim", "correct": true },
+        { "id": "stay_reduced_until_fixed", "label": "Until the bank shows the control gap is fixed, sizing risk should stay reduced regardless of how cheap the stock looks", "correct": true },
+        { "id": "already_dropped_due_bounce", "label": "The stock has already dropped a lot, so it's statistically due for a bounce", "correct": false },
+        { "id": "government_owned_safe", "label": "Government-owned banks don't fail, so the position is safe at any size", "correct": false },
+        { "id": "selling_locks_in_loss", "label": "Selling now means locking in a loss, so it's better to wait it out", "correct": false }
+      ]
+    }
+  ],
+  "variants": {
+    "beginner": {
+      "visibleFactIds": ["discovered_on_staff_change", "seven_years_undetected", "systems_not_linked"],
+      "lookupFactIds": [],
+      "redHerringFactIds": []
+    },
+    "intermediate": {
+      "visibleFactIds": ["discovered_on_staff_change"],
+      "lookupFactIds": ["seven_years_undetected", "systems_not_linked"],
+      "redHerringFactIds": []
+    },
+    "advanced": {
+      "visibleFactIds": [],
+      "lookupFactIds": [],
+      "redHerringFactIds": ["retail_loan_growth", "brokerage_buy_rating"]
+    }
+  },
+  "identity": {
+    "companyName": "Punjab National Bank",
+    "realDates": "The fraudulent Letters of Undertaking were disclosed on 14 February 2018; PNB shares fell sharply in the days that followed.",
+    "whatActuallyHappened": "PNB disclosed roughly Rs 11,400 crore (about $1.8 billion) in fraudulent Letters of Undertaking issued by its Brady House branch in Mumbai to firms linked to jeweller Nirav Modi and Mehul Choksi over several years, bypassing the bank's core banking system - SWIFT messages were sent without corresponding entries in the core system. The stock fell roughly 10% on the day of disclosure and continued declining over the following weeks as the scale of required provisioning became clear. It remains one of India's largest reported bank frauds; both Modi and Choksi left the country and became subjects of extradition proceedings."
+  }
+}

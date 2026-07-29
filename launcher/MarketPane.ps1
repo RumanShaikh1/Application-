@@ -31,6 +31,15 @@ $root = Split-Path -Parent $PSScriptRoot
 $serverDir = Join-Path $root 'server'
 $tsx = Join-Path $serverDir 'node_modules\.bin\tsx.cmd'
 $healthUrl = 'http://localhost:8787/health'
+# The API server (above) only serves JSON - the Simulator (and Decision
+# Replay, Tax Understanding) are the web/ React app, served by its own Vite
+# dev server. Previously this launcher started only the API and opened a
+# blank browser window, leaving the actual app unreachable unless you knew
+# to start web/ and navigate there yourself.
+$webDir = Join-Path $root 'web'
+$vite = Join-Path $webDir 'node_modules\.bin\vite.cmd'
+$webUrl = 'http://localhost:5173'
+$simulatorUrl = 'http://localhost:5173/simulator'
 $iconPath = Join-Path $PSScriptRoot 'assets\app-icon.ico'
 $configDir = Join-Path $env:APPDATA 'MarketPane'
 $configPath = Join-Path $configDir 'config.json'
@@ -41,23 +50,66 @@ function Show-ErrorBox([string]$message) {
     [System.Windows.Forms.MessageBox]::Show($message, 'MarketPane', 'OK', 'Error') | Out-Null
 }
 
-function Get-InstalledBrowsers {
-    $candidates = @(
-        @{ Name = 'Google Chrome'; Path = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe" },
-        @{ Name = 'Google Chrome'; Path = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" },
-        @{ Name = 'Google Chrome'; Path = "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe" },
-        @{ Name = 'Microsoft Edge'; Path = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" },
-        @{ Name = 'Microsoft Edge'; Path = "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe" },
-        @{ Name = 'Mozilla Firefox'; Path = "$env:ProgramFiles\Mozilla Firefox\firefox.exe" },
-        @{ Name = 'Mozilla Firefox'; Path = "${env:ProgramFiles(x86)}\Mozilla Firefox\firefox.exe" },
-        @{ Name = 'Brave'; Path = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\Application\brave.exe" }
+
+# The App Paths registry convention every major browser installer
+# registers (HKLM for a machine-wide install, WOW6432Node for a 32-bit
+# entry seen from 64-bit PowerShell, HKCU for a per-user "just for me"
+# install, e.g. Chrome/Edge via winget or an MSIX/Store package). This is
+# the same mechanism Windows itself uses to resolve "chrome" -> its real
+# install path without a full path, so it finds a browser regardless of
+# *where* it happens to be installed - not just the handful of default
+# Program Files locations a fixed path list can guess.
+function Get-BrowserPathFromAppPaths([string]$exeName) {
+    $roots = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths',
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths'
     )
+    foreach ($root in $roots) {
+        $key = Get-Item -Path (Join-Path $root $exeName) -ErrorAction SilentlyContinue
+        if ($key) {
+            $path = $key.GetValue('')
+            if ($path -and (Test-Path $path)) { return $path }
+        }
+    }
+    return $null
+}
+
+function Get-InstalledBrowsers {
+    # Display-preference order. Falls back to a handful of fixed default
+    # paths per browser for the rare case one somehow didn't register App
+    # Paths - belt-and-suspenders, not the primary detection path anymore.
+    $knownBrowsers = [ordered]@{
+        'chrome.exe'  = @{ Name = 'Google Chrome'; Fallbacks = @(
+            "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+            "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+        ) }
+        'msedge.exe'  = @{ Name = 'Microsoft Edge'; Fallbacks = @(
+            "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+            "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
+        ) }
+        'firefox.exe' = @{ Name = 'Mozilla Firefox'; Fallbacks = @(
+            "$env:ProgramFiles\Mozilla Firefox\firefox.exe",
+            "${env:ProgramFiles(x86)}\Mozilla Firefox\firefox.exe"
+        ) }
+        'brave.exe'   = @{ Name = 'Brave'; Fallbacks = @(
+            "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\Application\brave.exe"
+        ) }
+        'opera.exe'   = @{ Name = 'Opera'; Fallbacks = @() }
+        'vivaldi.exe' = @{ Name = 'Vivaldi'; Fallbacks = @() }
+        'arc.exe'     = @{ Name = 'Arc'; Fallbacks = @() }
+    }
+
     $found = @()
-    $seenNames = @{}
-    foreach ($candidate in $candidates) {
-        if ((Test-Path $candidate.Path) -and -not $seenNames.ContainsKey($candidate.Name)) {
-            $found += [PSCustomObject]@{ Name = $candidate.Name; Path = $candidate.Path }
-            $seenNames[$candidate.Name] = $true
+    foreach ($exeName in $knownBrowsers.Keys) {
+        $info = $knownBrowsers[$exeName]
+        $path = Get-BrowserPathFromAppPaths $exeName
+        if (-not $path) {
+            $path = $info.Fallbacks | Where-Object { Test-Path $_ } | Select-Object -First 1
+        }
+        if ($path) {
+            $found += [PSCustomObject]@{ Name = $info.Name; Path = $path }
         }
     }
     return $found
@@ -156,11 +208,20 @@ function Show-BrowserPicker {
     $customRadio.Add_CheckedChanged($onCustomToggle)
     foreach ($radio in $radios) { $radio.Add_CheckedChanged($onCustomToggle) }
 
-    $browseButton.Add_Click({
+    $browseDialogAction = {
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
         $dialog.Filter = 'Applications (*.exe)|*.exe'
         if ($dialog.ShowDialog() -eq 'OK') { $customPathBox.Text = $dialog.FileName }
-    })
+    }
+    $browseButton.Add_Click($browseDialogAction)
+
+    # Nothing was auto-detected - "Other" is the user's only option anyway,
+    # so pre-select it and open the file picker immediately instead of
+    # making them notice "Other", check it, then find and click "...".
+    if ($installed.Count -eq 0) {
+        $customRadio.Checked = $true
+        $form.Add_Shown({ & $browseDialogAction }.GetNewClosure())
+    }
 
     $y += 12
     $continueButton = New-Object System.Windows.Forms.Button
@@ -231,9 +292,64 @@ function Start-ServerIfNeeded {
     return $true
 }
 
-function Open-Browser([string]$browserPath) {
+function Test-WebHealthy {
     try {
-        Start-Process -FilePath $browserPath
+        $response = Invoke-WebRequest -Uri $webUrl -TimeoutSec 2 -UseBasicParsing
+        return $response.StatusCode -eq 200
+    } catch {
+        return $false
+    }
+}
+
+# Same shape as Start-ServerIfNeeded above - the Vite dev server is a
+# second, independent local process, so it gets the same
+# already-running/missing-deps/timeout handling rather than being assumed
+# to "just work" because the API server did.
+function Start-WebIfNeeded {
+    if (Test-WebHealthy) { return $true }
+
+    if (-not (Test-Path $vite)) {
+        Show-ErrorBox "The web app's dependencies aren't installed yet.`n`nOpen a terminal and run:`n  cd web`n  npm install`n`nThen reopen MarketPane."
+        return $false
+    }
+
+    try {
+        Start-Process -FilePath $vite -WorkingDirectory $webDir -WindowStyle Hidden
+    } catch {
+        Show-ErrorBox "Could not start the web app:`n`n$_"
+        return $false
+    }
+
+    $attempts = 0
+    while (-not (Test-WebHealthy) -and $attempts -lt 20) {
+        Start-Sleep -Milliseconds 500
+        $attempts++
+    }
+
+    if (-not (Test-WebHealthy)) {
+        Show-ErrorBox "The web app didn't come up after 10 seconds. Run 'npm run dev' inside web/ directly to see the error."
+        return $false
+    }
+    return $true
+}
+
+# Chromium's "--app=<url>" flag opens a borderless window with no address
+# bar, tabs, or bookmarks bar - reads as a standalone app, not a browser tab,
+# without needing a separately-compiled application at all. It's still the
+# real, already-installed, already-trusted browser process under the hood
+# (full internet access, no code-signing/reputation gate to clear - unlike a
+# freshly-compiled .exe, which Windows 11's Smart App Control blocks outright
+# on this machine regardless of how it's launched). Firefox is Gecko-based
+# and has no equivalent flag, so it falls back to a normal window.
+function Open-Browser([string]$browserPath, [string]$browserName, [string]$url = $null) {
+    try {
+        if ($url -and $browserName -notlike '*firefox*') {
+            Start-Process -FilePath $browserPath -ArgumentList "--app=$url"
+        } elseif ($url) {
+            Start-Process -FilePath $browserPath -ArgumentList $url
+        } else {
+            Start-Process -FilePath $browserPath
+        }
     } catch {
         Show-ErrorBox "Could not launch the linked browser at:`n$browserPath`n`n$_"
     }
@@ -307,7 +423,7 @@ $mainForm.ClientSize = New-Object System.Drawing.Size(360, ($changeBrowserButton
 
 $openButton.Add_Click({
     $current = Load-Config
-    Open-Browser $current.browserPath
+    Open-Browser $current.browserPath $current.browserName $simulatorUrl
 })
 
 $changeBrowserButton.Add_Click({
@@ -320,15 +436,24 @@ $changeBrowserButton.Add_Click({
 
 $mainForm.Add_Shown({
     $mainForm.Activate()
-    $healthy = Start-ServerIfNeeded
-    if ($healthy) {
-        $statusLabel.Text = 'Server: running on localhost:8787'
-        $openButton.Enabled = $true
-        $currentConfig = Load-Config
-        Open-Browser $currentConfig.browserPath
-    } else {
+    $statusLabel.Text = 'Server: starting...'
+    $serverHealthy = Start-ServerIfNeeded
+    if (-not $serverHealthy) {
         $statusLabel.Text = 'Server: not running (see error)'
+        return
     }
+
+    $statusLabel.Text = 'Server: running - starting app...'
+    $webHealthy = Start-WebIfNeeded
+    if (-not $webHealthy) {
+        $statusLabel.Text = 'Server: running on localhost:8787 - app: not running (see error)'
+        return
+    }
+
+    $statusLabel.Text = 'Running: localhost:8787 (server), localhost:5173 (app)'
+    $openButton.Enabled = $true
+    $currentConfig = Load-Config
+    Open-Browser $currentConfig.browserPath $currentConfig.browserName $simulatorUrl
 })
 
 [void]$mainForm.ShowDialog()

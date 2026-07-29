@@ -1,0 +1,133 @@
+{
+  "id": "panic-selling-01",
+  "title": "The Market Just Dropped 17% in a Week",
+  "difficulty": "beginner",
+  "conceptTags": ["volatility", "panic selling", "market-wide vs. company-specific risk"],
+  "companyContext": "A large, steady consumer-goods company (soaps, foods, household staples) - usually a calm, slow compounder. You own it. This week it fell sharply.",
+  "priceSeed": [
+    { "day": 0, "open": 498, "high": 503, "low": 496, "close": 500 },
+    { "day": 1, "open": 500, "high": 507, "low": 499, "close": 505 },
+    { "day": 2, "open": 505, "high": 512, "low": 503, "close": 510 },
+    { "day": 3, "open": 510, "high": 517, "low": 508, "close": 515 },
+    { "day": 4, "open": 515, "high": 517, "low": 509, "close": 512 },
+    { "day": 5, "open": 512, "high": 520, "low": 510, "close": 518 },
+    { "day": 6, "open": 518, "high": 524, "low": 516, "close": 522 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "fundamentals",
+      "fundamentals": {
+        "Average historical pullback (past 3 years)": "-17%, recovered within 6-10 weeks in each of 4 prior instances",
+        "30-day realized volatility": "In line with 3-year average"
+      },
+      "note": "A typical past drop of about -17%, fully recovered within 6-10 weeks in each of the last 4 such drops, means falls of this size are normal for this stock and it has bounced back every time. Recent volatility in line with its 3-year normal means it isn't behaving unusually for itself. This is what this stock's price history normally looks like."
+    },
+    {
+      "index": 1,
+      "kind": "headline",
+      "headline": "\"Broad sell-off wipes out trillions globally overnight amid rate-hike fears\"",
+      "note": "This is a market-wide event - it isn't about this company specifically."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 522, "high": 523, "low": 498, "close": 500 },
+        { "day": 8, "open": 500, "high": 502, "low": 478, "close": 480 },
+        { "day": 9, "open": 480, "high": 482, "low": 458, "close": 460 },
+        { "day": 10, "open": 460, "high": 462, "low": 443, "close": 445 },
+        { "day": 11, "open": 445, "high": 447, "low": 433, "close": 435 },
+        { "day": 12, "open": 435, "high": 437, "low": 426, "close": 428 },
+        { "day": 13, "open": 428, "high": 430, "low": 423, "close": 425 },
+        { "day": 14, "open": 425, "high": 433, "low": 424, "close": 430 }
+      ],
+      "note": "Down sharply, moving with the whole market."
+    }
+  ],
+  "choices": [
+    { "id": "buy_more", "label": "Buy more", "description": "Add at the lower price." },
+    { "id": "hold", "label": "Hold", "description": "Leave it as is." },
+    { "id": "trim", "label": "Trim the position", "description": "Sell part to reduce risk." },
+    { "id": "sell_all", "label": "Sell the entire position", "description": "Sell all of it." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["hold"],
+    "acceptableChoiceIds": ["trim"],
+    "criteria": [
+      {
+        "id": "distinguishes_market_from_company_specific",
+        "description": "Recognizes the drop was driven by a broad, market-wide sell-off, not company-specific bad news.",
+        "weight": 35,
+        "factorOptionIds": ["market_wide"],
+        "matchConcepts": [
+          ["market-wide", "broad sell-off", "whole market", "market wide", "global sell-off", "entire market", "sector-wide", "everything dropped", "broad market"],
+          ["not company-specific", "no company-specific news", "nothing changed about the company", "not about this company", "no bad news about the company", "not any company-specific", "no company-specific", "nothing has actually changed", "nothing company-specific"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "uses_historical_volatility_context",
+        "description": "Uses the stock's own historical pullback-and-recovery pattern to judge whether this drawdown is unusual for it.",
+        "weight": 35,
+        "factorOptionIds": ["historical_context"],
+        "matchConcepts": [
+          ["historical", "before", "in the past", "recovered before", "history of", "previous pullback", "past drawdown", "typical for this stock", "normal volatility", "recovered from similar"]
+        ],
+        "minConceptsRequired": 1
+      },
+      {
+        "id": "resists_panic",
+        "description": "Doesn't treat a sharp short-term price drop, by itself, as new information about the company's fundamentals.",
+        "weight": 30,
+        "factorOptionIds": ["resists_panic"],
+        "matchConcepts": [
+          ["not new information", "isn't new information", "doesn't change the fundamental", "just a price drop", "not a reason to sell", "isn't a reason to sell", "hasn't changed", "nothing fundamental changed", "temporary", "short-term drop"]
+        ],
+        "minConceptsRequired": 1
+      }
+    ],
+    "factorOptions": [
+      { "id": "market_wide", "label": "The drop tracked a broad, market-wide sell-off, not any news about this company", "correct": true },
+      { "id": "historical_context", "label": "This stock has recovered from similarly sized drops several times before", "correct": true },
+      { "id": "resists_panic", "label": "A sharp short-term price drop by itself isn't new information about the business", "correct": true },
+      { "id": "pct_drop", "label": "The price fell 17% in a week", "correct": false },
+      { "id": "rate_fears_headline", "label": "Global rate-hike fears are dominating the news", "correct": false }
+    ],
+    "idealSummary": "A double-digit drop feels alarming, but alarming and informative aren't the same thing. Here the fall tracked a global, market-wide sell-off - not any news about this company - and it's well within the size and shape of drops this exact stock has recovered from several times before. Selling into a panic turns a temporary paper loss into a permanent real one, over something that never had anything to do with the actual business."
+  },
+  "outcome": {
+    "summary": "As the panic faded over the following weeks, the stock recovered nearly all of its drop - just like its previous ones. Nothing about the business had changed.",
+    "priceSeries": [
+      { "day": 0, "open": 498, "high": 503, "low": 496, "close": 500 },
+      { "day": 1, "open": 500, "high": 507, "low": 499, "close": 505 },
+      { "day": 2, "open": 505, "high": 512, "low": 503, "close": 510 },
+      { "day": 3, "open": 510, "high": 517, "low": 508, "close": 515 },
+      { "day": 4, "open": 515, "high": 517, "low": 509, "close": 512 },
+      { "day": 5, "open": 512, "high": 520, "low": 510, "close": 518 },
+      { "day": 6, "open": 518, "high": 524, "low": 516, "close": 522 },
+      { "day": 7, "open": 522, "high": 523, "low": 498, "close": 500 },
+      { "day": 8, "open": 500, "high": 502, "low": 478, "close": 480 },
+      { "day": 9, "open": 480, "high": 482, "low": 458, "close": 460 },
+      { "day": 10, "open": 460, "high": 462, "low": 443, "close": 445 },
+      { "day": 11, "open": 445, "high": 447, "low": 433, "close": 435 },
+      { "day": 12, "open": 435, "high": 437, "low": 426, "close": 428 },
+      { "day": 13, "open": 428, "high": 430, "low": 423, "close": 425 },
+      { "day": 14, "open": 425, "high": 433, "low": 424, "close": 430 },
+      { "day": 15, "open": 430, "high": 447, "low": 428, "close": 445 },
+      { "day": 16, "open": 445, "high": 462, "low": 443, "close": 460 },
+      { "day": 17, "open": 460, "high": 480, "low": 458, "close": 478 },
+      { "day": 18, "open": 478, "high": 497, "low": 476, "close": 495 },
+      { "day": 19, "open": 495, "high": 510, "low": 493, "close": 508 },
+      { "day": 20, "open": 508, "high": 517, "low": 506, "close": 515 },
+      { "day": 21, "open": 515, "high": 524, "low": 513, "close": 522 },
+      { "day": 22, "open": 522, "high": 530, "low": 520, "close": 528 },
+      { "day": 23, "open": 528, "high": 534, "low": 526, "close": 532 },
+      { "day": 24, "open": 532, "high": 537, "low": 530, "close": 535 }
+    ],
+    "grossReturnPercent": 24.4,
+    "outcomeCategory": "modest_gain"
+  },
+  "survivorshipNote": "Included to counterbalance loss-only lessons in the dataset - not every scary drawdown is a warning sign, and a beginner needs at least one example where the disciplined, correct choice was simply to do nothing."
+}

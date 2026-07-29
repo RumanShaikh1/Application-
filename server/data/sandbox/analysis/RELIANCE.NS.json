@@ -1,0 +1,71 @@
+{
+  "symbol": "RELIANCE.NS",
+  "strengths": [
+    "Diversified across three largely independent businesses - energy and petrochemicals (oil-to-chemicals refining), retail (India's largest retailer by revenue), and digital services/telecom (Jio) - so a downturn specific to any one segment doesn't sink the whole company.",
+    "Holds a leading, scaled position in each of those segments rather than being a smaller player in several - India's largest private-sector refiner, largest organised retailer, and largest telecom operator by subscriber count.",
+    "A long operating history (founded 1957) with a track record of successfully raising large amounts of external capital - in 2020 alone it brought in a series of global investors into both its digital and retail arms, which is a real, publicly documented vote of confidence from outside institutional money, not a claim made by the company alone.",
+    "Scale gives it negotiating leverage with suppliers and the balance sheet capacity to fund large, multi-year infrastructure build-outs (retail store networks, telecom towers and fibre) that smaller competitors often can't match."
+  ],
+  "weaknesses": [
+    "Ownership and control are concentrated in the founding family - a structural feature of many large Indian conglomerates worth understanding on its own terms, since it means fewer checks from a dispersed shareholder base than a widely-held company would have.",
+    "The energy and petrochemicals segment remains exposed to global crude oil prices and refining margins, both of which the company doesn't control and can swing independently of anything Reliance itself does well or poorly.",
+    "A conglomerate spanning energy, retail, telecom, and media is inherently harder for an outside investor to value cleanly than a single-business company - it's difficult to know from the outside how much of the company's total value each piece is really contributing.",
+    "Retail and telecom are both capital-intensive, infrastructure-heavy businesses that require continuous, large-scale spending to keep expanding and stay competitive - that ongoing capital need is a permanent claim on the company's cash flow, not a one-time cost."
+  ],
+  "checkpoints": [
+    {
+      "label": "baseline",
+      "day": 0,
+      "date": "2020-01-01",
+      "close": 690.14,
+      "percentFromWindowStart": 0,
+      "percentFromPriorCheckpoint": null,
+      "periodNote": "The starting level for this window - every later checkpoint below is measured against this."
+    },
+    {
+      "label": "pre_crash_peak",
+      "day": 35,
+      "date": "2020-02-19",
+      "close": 687.49,
+      "percentFromWindowStart": -0.4,
+      "percentFromPriorCheckpoint": -0.4,
+      "periodNote": "Essentially flat versus the window's opening level. The stock had traded in a fairly narrow range through January and into mid-February, with no visible sign yet of the sharp move that was about to follow."
+    },
+    {
+      "label": "crash_trough",
+      "day": 56,
+      "date": "2020-03-23",
+      "close": 404.16,
+      "percentFromWindowStart": -41.4,
+      "percentFromPriorCheckpoint": -41.2,
+      "periodNote": "Down 41% from the window's opening level, in a broad, market-wide sell-off (the COVID-19 shock) that hit nearly every listed company at once - not an event specific to Reliance. Nothing about the company's refining, retail, or telecom operations was disclosed as having deteriorated in this period; the move reflects a sudden, economy-wide repricing of risk, not new information about this company specifically."
+    },
+    {
+      "label": "early_recovery",
+      "day": 120,
+      "date": "2020-06-29",
+      "close": 795.23,
+      "percentFromWindowStart": 15.2,
+      "percentFromPriorCheckpoint": 96.8,
+      "periodNote": "Up nearly 97% from the crash trough, and now above where the window started - one of the faster reversals among this basket of 20 names. This stretch included Reliance publicly announcing a series of stake sales in its digital and retail units to global investors, a matter of public record independent of the share price move itself."
+    },
+    {
+      "label": "continued_recovery",
+      "day": 185,
+      "date": "2020-09-28",
+      "close": 1022.80,
+      "percentFromWindowStart": 48.2,
+      "percentFromPriorCheckpoint": 28.6,
+      "periodNote": "Continued climbing through the summer, now 48% above the window's starting level and above every earlier checkpoint in this window."
+    },
+    {
+      "label": "year_end",
+      "day": 250,
+      "date": "2020-12-31",
+      "close": 916.22,
+      "percentFromWindowStart": 32.8,
+      "percentFromPriorCheckpoint": -10.4,
+      "periodNote": "Gave back part of the September level but still closed the window 33% above where it started. Across the full window, the shape for this stock was a sharp fall followed by a larger absolute recovery - not a straight line back up."
+    }
+  ]
+}

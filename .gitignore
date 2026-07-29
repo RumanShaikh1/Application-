@@ -4,3 +4,6 @@ dist
 .env
 *.local
 temporary screenshots/
+.NET build artifacts (not source)
+bin/
+obj/

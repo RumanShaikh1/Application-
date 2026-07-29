@@ -1,0 +1,135 @@
+{
+  "id": "derisking-winner-01",
+  "title": "Your Best Idea Just Kept Getting Bigger",
+  "difficulty": "advanced",
+  "conceptTags": ["concentration risk", "portfolio construction", "outcome vs. process"],
+  "companyContext": "A big private-sector bank that's been a core holding for years - up a lot, with no problems in the business. It's quietly become your largest position by far.",
+  "priceSeed": [
+    { "day": 0, "open": 798, "high": 802, "low": 795, "close": 800 },
+    { "day": 1, "open": 800, "high": 817, "low": 799, "close": 815 },
+    { "day": 2, "open": 815, "high": 830, "low": 813, "close": 828 },
+    { "day": 3, "open": 828, "high": 842, "low": 826, "close": 840 },
+    { "day": 4, "open": 840, "high": 857, "low": 838, "close": 855 },
+    { "day": 5, "open": 855, "high": 870, "low": 853, "close": 868 },
+    { "day": 6, "open": 868, "high": 882, "low": 866, "close": 880 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "fundamentals",
+      "fundamentals": {
+        "Position size (% of total portfolio)": "38% (started as a 6% position 4 years ago)",
+        "ROE": "18%",
+        "NPA ratio": "Stable at 1.1%, no red flags"
+      },
+      "note": "A position at 38% of your total portfolio, up from 6% four years ago, means it grew this big by performing, not by you adding to it. An ROE (return on equity) of 18% means for every ₹100 of shareholders' money, it earns ₹18 a year - a healthy figure. An NPA ratio (bad-loan ratio) of 1.1% and stable means only about 1% of its loans have gone bad, with no warning signs. Nothing is wrong with this bank - it has simply compounded into a large share of what you own."
+    },
+    {
+      "index": 1,
+      "kind": "headline",
+      "headline": "\"Bank reports another strong quarter, continues gaining market share\"",
+      "note": "Business performance remains genuinely strong."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 880, "high": 897, "low": 878, "close": 895 },
+        { "day": 8, "open": 895, "high": 910, "low": 893, "close": 908 },
+        { "day": 9, "open": 908, "high": 922, "low": 906, "close": 920 },
+        { "day": 10, "open": 920, "high": 934, "low": 918, "close": 932 },
+        { "day": 11, "open": 932, "high": 944, "low": 930, "close": 942 },
+        { "day": 12, "open": 942, "high": 952, "low": 940, "close": 950 },
+        { "day": 13, "open": 950, "high": 957, "low": 948, "close": 955 },
+        { "day": 14, "open": 955, "high": 962, "low": 953, "close": 960 }
+      ],
+      "note": "Still climbing on the strong results."
+    }
+  ],
+  "choices": [
+    { "id": "buy_more", "label": "Buy more", "description": "It's your best idea, keep adding." },
+    { "id": "hold", "label": "Hold", "description": "Leave it as is." },
+    { "id": "trim", "label": "Trim the position", "description": "Sell part of it to bring it back to a normal size." },
+    { "id": "sell_all", "label": "Sell the entire position", "description": "Sell all of it." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["trim"],
+    "acceptableChoiceIds": ["hold"],
+    "criteria": [
+      {
+        "id": "recognizes_concentration_without_red_flag",
+        "description": "Recognizes that a position can need trimming purely for sizing reasons, even with zero fundamental red flags.",
+        "weight": 40,
+        "factorOptionIds": ["concentration_no_red_flag"],
+        "matchConcepts": [
+          ["concentrat", "position size", "too big", "oversized", "large percentage", "portfolio share", "grown to"],
+          ["nothing wrong", "no red flag", "even without", "not because anything", "company is fine", "no fundamental problem", "not a quality issue"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "separates_process_from_prediction",
+        "description": "Frames the decision as portfolio-construction discipline, not a prediction about whether the stock will keep rising.",
+        "weight": 35,
+        "factorOptionIds": ["process_not_prediction"],
+        "matchConcepts": [
+          ["portfolio construction", "risk management", "process", "discipline", "sizing discipline", "portfolio hygiene"],
+          ["not a prediction", "not betting against", "doesn't mean i think it'll fall", "not a call on", "isn't a bet", "regardless of what the stock does next"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "not_anchored_to_past_returns",
+        "description": "Doesn't treat the position's strong historical returns as a reason it has now 'earned' an oversized allocation.",
+        "weight": 25,
+        "factorOptionIds": ["not_anchored_to_returns"],
+        "matchConcepts": [
+          ["past returns", "historical performance", "hasn't earned", "doesn't deserve", "just because it's done well", "track record", "earned a bigger allocation"]
+        ],
+        "minConceptsRequired": 1
+      }
+    ],
+    "factorOptions": [
+      { "id": "concentration_no_red_flag", "label": "The position has grown to 38% of the portfolio purely through outperformance, with no fundamental problem at all", "correct": true },
+      { "id": "process_not_prediction", "label": "Trimming here is portfolio-construction discipline, not a prediction that the stock will fall", "correct": true },
+      { "id": "not_anchored_to_returns", "label": "Strong historical returns don't mean the position has earned a permanently oversized allocation", "correct": true },
+      { "id": "strong_quarter", "label": "The bank posted another strong quarter and keeps gaining market share", "correct": false },
+      { "id": "healthy_roe", "label": "The ROE is a healthy 18% with no red flags in asset quality", "correct": false }
+    ],
+    "idealSummary": "A company doesn't have to have anything wrong with it for its size to become a risk. A holding that grew from 6% to 38% of your portfolio through sheer success concentrates your risk just as much as one you deliberately over-bought. Trimming isn't a prediction that the stock will fall - it's portfolio discipline, and it doesn't need to be 'right' about the future to be the sound choice."
+  },
+  "outcome": {
+    "summary": "No reversal - the bank just kept compounding, no bad news at all. Someone who trimmed still gained on the rest, just less than someone who held the full position. Trimming a quality winner purely for size will sometimes look, in hindsight, like it cost you upside - that's the price of controlling concentration risk, not a sign the decision was wrong.",
+    "priceSeries": [
+      { "day": 0, "open": 798, "high": 802, "low": 795, "close": 800 },
+      { "day": 1, "open": 800, "high": 817, "low": 799, "close": 815 },
+      { "day": 2, "open": 815, "high": 830, "low": 813, "close": 828 },
+      { "day": 3, "open": 828, "high": 842, "low": 826, "close": 840 },
+      { "day": 4, "open": 840, "high": 857, "low": 838, "close": 855 },
+      { "day": 5, "open": 855, "high": 870, "low": 853, "close": 868 },
+      { "day": 6, "open": 868, "high": 882, "low": 866, "close": 880 },
+      { "day": 7, "open": 880, "high": 897, "low": 878, "close": 895 },
+      { "day": 8, "open": 895, "high": 910, "low": 893, "close": 908 },
+      { "day": 9, "open": 908, "high": 922, "low": 906, "close": 920 },
+      { "day": 10, "open": 920, "high": 934, "low": 918, "close": 932 },
+      { "day": 11, "open": 932, "high": 944, "low": 930, "close": 942 },
+      { "day": 12, "open": 942, "high": 952, "low": 940, "close": 950 },
+      { "day": 13, "open": 950, "high": 957, "low": 948, "close": 955 },
+      { "day": 14, "open": 955, "high": 962, "low": 953, "close": 960 },
+      { "day": 15, "open": 960, "high": 972, "low": 958, "close": 970 },
+      { "day": 16, "open": 970, "high": 987, "low": 968, "close": 985 },
+      { "day": 17, "open": 985, "high": 1000, "low": 983, "close": 998 },
+      { "day": 18, "open": 998, "high": 1012, "low": 996, "close": 1010 },
+      { "day": 19, "open": 1010, "high": 1027, "low": 1008, "close": 1025 },
+      { "day": 20, "open": 1025, "high": 1040, "low": 1023, "close": 1038 },
+      { "day": 21, "open": 1038, "high": 1052, "low": 1036, "close": 1050 },
+      { "day": 22, "open": 1050, "high": 1064, "low": 1048, "close": 1062 },
+      { "day": 23, "open": 1062, "high": 1077, "low": 1060, "close": 1075 },
+      { "day": 24, "open": 1075, "high": 1092, "low": 1073, "close": 1090 }
+    ],
+    "grossReturnPercent": 13.5,
+    "outcomeCategory": "modest_gain"
+  },
+  "survivorshipNote": "Pairs with the concentration-risk scenario to show both sides of the same lesson: sometimes trimming a large winner is vindicated by a shock, and sometimes the winner just keeps winning. The dataset needs both, or 'trim your winners' would look like a decision that's always rewarded - which isn't true and isn't the actual lesson."
+}

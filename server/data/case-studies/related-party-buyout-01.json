@@ -1,0 +1,127 @@
+{
+  "id": "related-party-buyout-01",
+  "title": "The Related-Party Buyout Attempt",
+  "maskedContext": "A large, well-known IT services company - a fast-growing outsourcing business investors treat as a reliable blue-chip. In December of Year 0, its board approved a plan to acquire two real-estate and infrastructure companies for a combined price close to the IT company's own market value. Both companies being acquired were controlled by the same family that ran the IT company. The plan was withdrawn within about a day, after sharp investor and analyst backlash - the board never publicly explained why it had approved the deal in the first place.",
+  "facts": [
+    {
+      "id": "world_bank_ban",
+      "label": "An international lender's ban",
+      "detail": "Earlier in Year 0, the company had disclosed - almost in passing, on an investor call rather than as a headline announcement - that a major international development lender had barred it from new contracts for several years over data theft and improper payments to the lender's own staff."
+    },
+    {
+      "id": "board_approved_quietly",
+      "label": "The board's own role",
+      "detail": "Several independent board directors, including well-regarded academics and public figures, had approved the related-party deal without raising public objections before the announcement."
+    },
+    {
+      "id": "insider_selling",
+      "label": "Insider share sales",
+      "detail": "Family-linked entities connected to the company's leadership had been steadily pledging and selling down their shareholding in the company over the previous year."
+    }
+  ],
+  "redHerringFacts": [
+    {
+      "id": "analyst_buy_rating",
+      "label": "A fresh 'buy' rating",
+      "detail": "A well-known global investment bank had reiterated a 'buy' rating on the stock just weeks earlier, citing strong revenue-pipeline visibility."
+    },
+    {
+      "id": "contract_win",
+      "label": "A large contract renewal",
+      "detail": "The company had announced a large, multi-year contract renewal with one of its biggest global clients the same week as the board's related-party announcement."
+    }
+  ],
+  "tiers": [
+    {
+      "kind": "risk_read",
+      "id": "risk-read",
+      "block": {
+        "question": "How do you read this?",
+        "readOptions": [
+          { "id": "governance_red_flag", "label": "This is a serious governance red flag - leadership tried to move an amount close to the entire company's market value into businesses its own family controls", "correct": true },
+          { "id": "smart_diversification", "label": "This is a reasonable diversification move by a mature company looking for its next growth avenue", "correct": false },
+          { "id": "resolved_fine", "label": "It was withdrawn, so there's nothing really to worry about here", "correct": false }
+        ],
+        "factorQuestion": "Which of these support that read?",
+        "factorOptions": [
+          { "id": "related_party", "label": "The companies being bought were controlled by the same family that runs the IT company - a related-party deal", "correct": true },
+          { "id": "deal_size_vs_market_cap", "label": "The deal size was close to the entire market value of the company being asked to fund it", "correct": true },
+          { "id": "withdrawn_after_backlash", "label": "The board approved it before disclosing it to shareholders, and withdrew it only after public backlash - not on its own initiative", "correct": true },
+          { "id": "revenue_grew", "label": "The company's revenue had grown again the previous quarter", "correct": false },
+          { "id": "stock_recovered_a_bit", "label": "The stock only fell for a single day before steadying", "correct": false }
+        ]
+      }
+    },
+    {
+      "kind": "sizing",
+      "id": "sizing",
+      "prompt": "Say this stock was 20% of your portfolio going into this news. Given what the board just tried to do, how far would you trim it?",
+      "buckets": [
+        { "id": "b20", "label": "Keep it at 20% - hold as is", "value": 20 },
+        { "id": "b15", "label": "Trim to 15%", "value": 15 },
+        { "id": "b10", "label": "Trim to 10%", "value": 10 },
+        { "id": "b5", "label": "Trim to 5%", "value": 5 },
+        { "id": "b0", "label": "Exit the position entirely (0%)", "value": 0 }
+      ],
+      "bands": [
+        { "id": "sound", "min": 0, "max": 10, "credit": "full" },
+        { "id": "adjacent", "min": 11, "max": 15, "credit": "partial" }
+      ],
+      "reasonQuestion": "Why that size?",
+      "reasonOptions": [
+        { "id": "governance_trumps_track_record", "label": "A related-party deal this large is a governance red flag serious enough to cut conviction regardless of the company's past performance", "correct": true },
+        { "id": "willingness_matters_even_if_undone", "label": "Leadership showing willingness to use shareholder capital for its own related interests raises position risk even though the deal didn't go through", "correct": true },
+        { "id": "small_drop_small_trim", "label": "The stock only dropped a little, so a small trim is enough", "correct": false },
+        { "id": "track_record_deserves_benefit_of_doubt", "label": "A company with this strong a track record deserves the benefit of the doubt here", "correct": false },
+        { "id": "withdrawn_so_risk_gone", "label": "The deal was withdrawn, so the risk that caused it is already gone", "correct": false }
+      ]
+    },
+    {
+      "kind": "instrument",
+      "id": "instrument",
+      "maxLossQuestion": "Say you wanted to bet on further downside here by shorting the stock outright - borrowing shares to sell now, hoping to buy them back cheaper later. What is the most you could lose?",
+      "maxLossOptions": [
+        { "id": "unlimited", "label": "More than my entire stake - a short's losses are theoretically unlimited if the price rises instead of falling", "correct": true },
+        { "id": "capped_at_price", "label": "The price of the stock at the time I opened the short", "correct": false },
+        { "id": "capped_at_margin", "label": "A fixed amount, capped at the margin I post to open the position", "correct": false }
+      ],
+      "maxLossExplanation": "Shorting means borrowing shares, selling them now, and buying them back later to return them. If the price falls, the profit is capped at however far it can fall (to zero). But if the price rises instead, there is no ceiling - you can be forced to buy back at a far higher price than you sold at, so a short position's potential loss is unlimited, not capped at your stake or your margin.",
+      "instrumentQuestion": "Given that, which of these would you actually use to bet on further downside here?",
+      "instrumentOptions": [
+        { "id": "short_stock", "label": "Short the stock directly", "correct": false },
+        { "id": "long_put", "label": "Buy a put option instead", "correct": true },
+        { "id": "avoid_new_bet", "label": "Don't place a new bet on this - just manage the existing position", "correct": true }
+      ],
+      "exitQuestion": "Which of these matter most for surviving a bet like this, regardless of how it turns out?",
+      "exitOptions": [
+        { "id": "position_size_vs_conviction", "label": "Sizing the bet small enough that being wrong doesn't meaningfully damage the portfolio", "correct": true },
+        { "id": "predefined_exit", "label": "Deciding in advance what would prove the downside thesis wrong, and exiting if that happens", "correct": true },
+        { "id": "premium_is_the_cost_of_being_wrong", "label": "Treating the premium paid as the full, known cost of being wrong - not something to fight to recover", "correct": true },
+        { "id": "size_up_if_right_early", "label": "Increasing the bet if it starts moving in your favor, to maximize the payout", "correct": false },
+        { "id": "hold_regardless", "label": "Holding the position regardless of how it moves, since conviction shouldn't waver", "correct": false }
+      ]
+    }
+  ],
+  "variants": {
+    "beginner": {
+      "visibleFactIds": ["world_bank_ban", "board_approved_quietly", "insider_selling"],
+      "lookupFactIds": [],
+      "redHerringFactIds": []
+    },
+    "intermediate": {
+      "visibleFactIds": ["world_bank_ban"],
+      "lookupFactIds": ["board_approved_quietly", "insider_selling"],
+      "redHerringFactIds": []
+    },
+    "advanced": {
+      "visibleFactIds": [],
+      "lookupFactIds": [],
+      "redHerringFactIds": ["analyst_buy_rating", "contract_win"]
+    }
+  },
+  "identity": {
+    "companyName": "Satyam Computer Services",
+    "realDates": "The board approved and then withdrew the related-party acquisition on 16 December 2008; chairman B. Ramalinga Raju confessed to a multi-year accounting fraud on 7 January 2009.",
+    "whatActuallyHappened": "Satyam's board approved buying Maytas Properties and Maytas Infra - both controlled by the family of chairman B. Ramalinga Raju - for about $1.6 billion, roughly Satyam's own market capitalisation at the time. Investor and analyst backlash forced the board to withdraw the deal within about 12 hours. Three weeks later, on 7 January 2009, Raju admitted in a letter to the board and regulators that Satyam's accounts had been falsified for years, including roughly $1 billion in fictitious cash and bank balances - India's largest corporate accounting fraud to that point. The stock fell by more than 70% in a single day of trading. Satyam was later acquired by Tech Mahindra in April 2009, and Raju was convicted and sentenced to prison."
+  }
+}

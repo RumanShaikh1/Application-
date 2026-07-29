@@ -1,0 +1,135 @@
+{
+  "id": "disciplined-stoploss-01",
+  "title": "Your Largest Customer Just Left",
+  "difficulty": "advanced",
+  "conceptTags": ["risk management", "fundamental deterioration", "outcome vs. process"],
+  "companyContext": "A car-parts manufacturer you've held for a long time. Its single largest customer just cancelled a big supply contract.",
+  "priceSeed": [
+    { "day": 0, "open": 402, "high": 404, "low": 397, "close": 400 },
+    { "day": 1, "open": 400, "high": 401, "low": 393, "close": 395 },
+    { "day": 2, "open": 395, "high": 396, "low": 388, "close": 390 },
+    { "day": 3, "open": 390, "high": 391, "low": 383, "close": 385 },
+    { "day": 4, "open": 385, "high": 386, "low": 376, "close": 378 },
+    { "day": 5, "open": 378, "high": 379, "low": 368, "close": 370 },
+    { "day": 6, "open": 370, "high": 371, "low": 363, "close": 365 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "headline",
+      "headline": "\"Company's largest customer, representing 40% of revenue, cancels multi-year supply contract, citing a shift to a competing supplier\"",
+      "note": "This customer relationship has been the company's single biggest revenue source for years."
+    },
+    {
+      "index": 1,
+      "kind": "fundamentals",
+      "fundamentals": {
+        "Revenue at risk": "~40% of last year's total",
+        "Cash reserves": "Cover ~5 months of operating expenses at current burn rate",
+        "Confirmed replacement contracts": "None announced"
+      },
+      "note": "Revenue at risk of ~40% of last year's total means nearly half its income just walked out the door. Cash reserves covering ~5 months of running costs means a limited cushion. No confirmed replacement customers means this is what's known today - no replacement deal has been confirmed."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 365, "high": 366, "low": 338, "close": 340 },
+        { "day": 8, "open": 340, "high": 341, "low": 323, "close": 325 },
+        { "day": 9, "open": 325, "high": 326, "low": 313, "close": 315 },
+        { "day": 10, "open": 315, "high": 316, "low": 306, "close": 308 },
+        { "day": 11, "open": 308, "high": 309, "low": 301, "close": 303 },
+        { "day": 12, "open": 303, "high": 304, "low": 298, "close": 300 },
+        { "day": 13, "open": 300, "high": 301, "low": 296, "close": 298 },
+        { "day": 14, "open": 298, "high": 299, "low": 294, "close": 296 }
+      ],
+      "note": "Fallen sharply since the cancellation was announced."
+    }
+  ],
+  "choices": [
+    { "id": "buy_more", "label": "Buy more", "description": "The market may be overreacting, add." },
+    { "id": "hold", "label": "Hold", "description": "Leave it as is." },
+    { "id": "trim", "label": "Trim the position", "description": "Sell part to reduce exposure." },
+    { "id": "sell_all", "label": "Sell the entire position", "description": "Sell all of it." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["sell_all"],
+    "acceptableChoiceIds": ["trim"],
+    "criteria": [
+      {
+        "id": "quantifies_revenue_exposure",
+        "description": "Recognizes that 40% of revenue is at risk from a single customer loss - a major, concentrated impact, not a minor one.",
+        "weight": 40,
+        "factorOptionIds": ["revenue_exposure"],
+        "matchConcepts": [
+          ["40%", "40 percent", "forty percent", "major customer", "largest customer", "significant portion of revenue", "large share of revenue", "revenue exposure", "revenue at risk"]
+        ],
+        "minConceptsRequired": 1
+      },
+      {
+        "id": "assesses_replacement_prospects",
+        "description": "Notes that no replacement contract has been confirmed and weighs the limited cash runway against that gap.",
+        "weight": 35,
+        "factorOptionIds": ["replacement_prospects"],
+        "matchConcepts": [
+          ["no replacement", "not confirmed", "no new contract", "hasn't replaced", "no confirmed replacement"],
+          ["cash runway", "limited cash", "cash reserves", "runway", "cash position", "how much cash"]
+        ],
+        "minConceptsRequired": 1
+      },
+      {
+        "id": "treats_as_fundamental_not_sentiment",
+        "description": "Treats this as a genuine fundamental deterioration to respond to, rather than a sentiment-driven overreaction to simply wait out.",
+        "weight": 25,
+        "factorOptionIds": ["fundamental_not_sentiment"],
+        "matchConcepts": [
+          ["fundamental", "real change", "genuine", "structural", "material change", "actually changed"],
+          ["not sentiment", "not just sentiment", "not an overreaction", "not just an overreaction", "not just market mood", "not just noise", "not temporary", "not a panic reaction"]
+        ],
+        "minConceptsRequired": 2
+      }
+    ],
+    "factorOptions": [
+      { "id": "revenue_exposure", "label": "40% of last year's revenue is now at risk from a single customer loss", "correct": true },
+      { "id": "replacement_prospects", "label": "No replacement contract has been confirmed, and cash covers only about 5 months", "correct": true },
+      { "id": "fundamental_not_sentiment", "label": "This is a genuine change to the business, not a sentiment-driven overreaction", "correct": true },
+      { "id": "price_fallen", "label": "The stock has fallen sharply since the announcement", "correct": false },
+      { "id": "overreacting", "label": "The market may be overreacting to this kind of news", "correct": false }
+    ],
+    "idealSummary": "Losing a customer worth 40% of revenue, with no replacement confirmed and only a few months of cash, is a real change to the business - not a market mood swing. This is exactly the kind of concrete, measurable news a disciplined exit is supposed to respond to. Whether you sell is judged by what you knew when you decided - not by whatever the price happens to do afterward."
+  },
+  "outcome": {
+    "summary": "Six weeks later, with no advance signal, the company announced a surprise replacement contract with an even bigger customer. The stock recovered and rallied past its old level. Someone who sold took a real loss and missed the rebound - and their decision was still sound. Nothing available at the time hinted at a rescue, and a 40%-of-revenue loss with no backup was a legitimate reason to cut risk. Good decisions are judged by the information you had, not by how the story ends.",
+    "priceSeries": [
+      { "day": 0, "open": 402, "high": 404, "low": 397, "close": 400 },
+      { "day": 1, "open": 400, "high": 401, "low": 393, "close": 395 },
+      { "day": 2, "open": 395, "high": 396, "low": 388, "close": 390 },
+      { "day": 3, "open": 390, "high": 391, "low": 383, "close": 385 },
+      { "day": 4, "open": 385, "high": 386, "low": 376, "close": 378 },
+      { "day": 5, "open": 378, "high": 379, "low": 368, "close": 370 },
+      { "day": 6, "open": 370, "high": 371, "low": 363, "close": 365 },
+      { "day": 7, "open": 365, "high": 366, "low": 338, "close": 340 },
+      { "day": 8, "open": 340, "high": 341, "low": 323, "close": 325 },
+      { "day": 9, "open": 325, "high": 326, "low": 313, "close": 315 },
+      { "day": 10, "open": 315, "high": 316, "low": 306, "close": 308 },
+      { "day": 11, "open": 308, "high": 309, "low": 301, "close": 303 },
+      { "day": 12, "open": 303, "high": 304, "low": 298, "close": 300 },
+      { "day": 13, "open": 300, "high": 301, "low": 296, "close": 298 },
+      { "day": 14, "open": 298, "high": 299, "low": 294, "close": 296 },
+      { "day": 15, "open": 296, "high": 307, "low": 295, "close": 305 },
+      { "day": 16, "open": 305, "high": 317, "low": 303, "close": 315 },
+      { "day": 17, "open": 315, "high": 332, "low": 313, "close": 330 },
+      { "day": 18, "open": 330, "high": 357, "low": 328, "close": 355 },
+      { "day": 19, "open": 355, "high": 387, "low": 353, "close": 385 },
+      { "day": 20, "open": 385, "high": 412, "low": 383, "close": 410 },
+      { "day": 21, "open": 410, "high": 427, "low": 408, "close": 425 },
+      { "day": 22, "open": 425, "high": 437, "low": 423, "close": 435 },
+      { "day": 23, "open": 435, "high": 442, "low": 433, "close": 440 },
+      { "day": 24, "open": 440, "high": 447, "low": 438, "close": 445 }
+    ],
+    "grossReturnPercent": 50.3,
+    "outcomeCategory": "strong_gain"
+  },
+  "survivorshipNote": "A deliberately included 'sound decision, unlucky outcome' case - the stock's own price history recovers strongly after a legitimately sound exit. This is precisely the scenario that shows why grading on outcome instead of process would have punished the right decision."
+}

@@ -1,0 +1,134 @@
+{
+  "id": "noise-headline-01",
+  "title": "A Scary Headline, and Not Much Else",
+  "difficulty": "beginner",
+  "conceptTags": ["signal vs. noise", "headline reaction", "materiality"],
+  "companyContext": "A large, stable IT-services company you've held for years, with a long record of steady, reliable results.",
+  "priceSeed": [
+    { "day": 0, "open": 1398, "high": 1403, "low": 1395, "close": 1400 },
+    { "day": 1, "open": 1400, "high": 1410, "low": 1398, "close": 1408 },
+    { "day": 2, "open": 1408, "high": 1417, "low": 1406, "close": 1415 },
+    { "day": 3, "open": 1415, "high": 1422, "low": 1413, "close": 1420 },
+    { "day": 4, "open": 1420, "high": 1430, "low": 1418, "close": 1428 },
+    { "day": 5, "open": 1428, "high": 1434, "low": 1426, "close": 1432 },
+    { "day": 6, "open": 1432, "high": 1440, "low": 1430, "close": 1438 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "headline",
+      "headline": "\"Company sued by former employee alleging workplace misconduct; shares dip on the news\"",
+      "note": "The headline itself gives no financial figures."
+    },
+    {
+      "index": 1,
+      "kind": "fundamentals",
+      "fundamentals": {
+        "Estimated maximum financial exposure": "<0.1% of annual revenue",
+        "Impact to client contracts or deal pipeline": "None reported",
+        "Full-year guidance": "Reaffirmed"
+      },
+      "note": "A worst-case financial cost under 0.1% of one year's revenue means even if it loses completely, the money involved is tiny next to the company's size. No reported effect on client contracts or new deals, and reaffirmed full-year guidance, mean management still expects the same results as before. This is what the company disclosed in the days after the headline."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 1438, "high": 1439, "low": 1416, "close": 1420 },
+        { "day": 8, "open": 1420, "high": 1421, "low": 1401, "close": 1405 },
+        { "day": 9, "open": 1405, "high": 1406, "low": 1391, "close": 1395 },
+        { "day": 10, "open": 1395, "high": 1400, "low": 1393, "close": 1398 },
+        { "day": 11, "open": 1398, "high": 1404, "low": 1396, "close": 1402 },
+        { "day": 12, "open": 1402, "high": 1403, "low": 1397, "close": 1400 },
+        { "day": 13, "open": 1400, "high": 1406, "low": 1398, "close": 1403 },
+        { "day": 14, "open": 1403, "high": 1404, "low": 1397, "close": 1400 }
+      ],
+      "note": "Dipped on the headline, roughly flat since."
+    }
+  ],
+  "choices": [
+    { "id": "buy_more", "label": "Buy more", "description": "The dip looks like an overreaction, add." },
+    { "id": "hold", "label": "Hold", "description": "Leave it as is." },
+    { "id": "trim", "label": "Trim the position", "description": "Sell part to reduce exposure." },
+    { "id": "sell_all", "label": "Sell the entire position", "description": "Sell all of it." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["hold"],
+    "acceptableChoiceIds": ["buy_more"],
+    "criteria": [
+      {
+        "id": "distinguishes_material_from_immaterial",
+        "description": "Distinguishes an alarming-sounding headline from its actual, quantified financial materiality.",
+        "weight": 40,
+        "factorOptionIds": ["material_vs_immaterial"],
+        "matchConcepts": [
+          ["sounds alarming", "sounds serious", "scary headline", "alarming headline", "lawsuit"],
+          ["immaterial", "small percentage", "0.1%", "tiny fraction", "not material", "insignificant", "quantified impact", "small compared to revenue", "not a big deal financially"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "checks_guidance_and_pipeline",
+        "description": "Notes that the company reaffirmed guidance and reported no impact to client contracts or pipeline.",
+        "weight": 35,
+        "factorOptionIds": ["guidance_and_pipeline"],
+        "matchConcepts": [
+          ["guidance", "reaffirmed", "pipeline", "no impact to", "client contracts", "client relationships unaffected", "still on track"]
+        ],
+        "minConceptsRequired": 1
+      },
+      {
+        "id": "resists_headline_reaction",
+        "description": "Doesn't treat the existence of a lawsuit, by itself, as a reason to change a long-term position.",
+        "weight": 25,
+        "factorOptionIds": ["resists_headline_reaction"],
+        "matchConcepts": [
+          ["not a reason to sell", "existence of a lawsuit", "lawsuit alone", "just because there's a lawsuit", "headline alone", "not enough reason", "shouldn't react to the headline"]
+        ],
+        "minConceptsRequired": 1
+      }
+    ],
+    "factorOptions": [
+      { "id": "material_vs_immaterial", "label": "The worst-case financial exposure is under 0.1% of annual revenue - immaterial next to the company's size", "correct": true },
+      { "id": "guidance_and_pipeline", "label": "The company reaffirmed full-year guidance and reported no impact to client contracts", "correct": true },
+      { "id": "resists_headline_reaction", "label": "The existence of a lawsuit by itself isn't a reason to change a long-term position", "correct": true },
+      { "id": "sounds_serious", "label": "The headline sounds serious", "correct": false },
+      { "id": "price_dipped", "label": "The stock dipped on the news", "correct": false }
+    ],
+    "idealSummary": "Not every bad headline matters to your investment. A lawsuit whose worst case is under 0.1% of revenue, with no effect on clients and unchanged guidance, is - in plain financial terms - immaterial, however serious the headline sounds. Trading on the tone of a headline instead of its actual, measured impact is exactly how beginners turn harmless noise into needless buying and selling."
+  },
+  "outcome": {
+    "summary": "The lawsuit was quietly settled months later within the company's own cost estimate, with no client impact. The stock resumed its steady climb as if the headline had never appeared.",
+    "priceSeries": [
+      { "day": 0, "open": 1398, "high": 1403, "low": 1395, "close": 1400 },
+      { "day": 1, "open": 1400, "high": 1410, "low": 1398, "close": 1408 },
+      { "day": 2, "open": 1408, "high": 1417, "low": 1406, "close": 1415 },
+      { "day": 3, "open": 1415, "high": 1422, "low": 1413, "close": 1420 },
+      { "day": 4, "open": 1420, "high": 1430, "low": 1418, "close": 1428 },
+      { "day": 5, "open": 1428, "high": 1434, "low": 1426, "close": 1432 },
+      { "day": 6, "open": 1432, "high": 1440, "low": 1430, "close": 1438 },
+      { "day": 7, "open": 1438, "high": 1439, "low": 1416, "close": 1420 },
+      { "day": 8, "open": 1420, "high": 1421, "low": 1401, "close": 1405 },
+      { "day": 9, "open": 1405, "high": 1406, "low": 1391, "close": 1395 },
+      { "day": 10, "open": 1395, "high": 1400, "low": 1393, "close": 1398 },
+      { "day": 11, "open": 1398, "high": 1404, "low": 1396, "close": 1402 },
+      { "day": 12, "open": 1402, "high": 1403, "low": 1397, "close": 1400 },
+      { "day": 13, "open": 1400, "high": 1406, "low": 1398, "close": 1403 },
+      { "day": 14, "open": 1403, "high": 1404, "low": 1397, "close": 1400 },
+      { "day": 15, "open": 1400, "high": 1410, "low": 1398, "close": 1408 },
+      { "day": 16, "open": 1408, "high": 1417, "low": 1406, "close": 1415 },
+      { "day": 17, "open": 1415, "high": 1424, "low": 1413, "close": 1422 },
+      { "day": 18, "open": 1422, "high": 1432, "low": 1420, "close": 1430 },
+      { "day": 19, "open": 1430, "high": 1440, "low": 1428, "close": 1438 },
+      { "day": 20, "open": 1438, "high": 1448, "low": 1436, "close": 1446 },
+      { "day": 21, "open": 1446, "high": 1455, "low": 1444, "close": 1453 },
+      { "day": 22, "open": 1453, "high": 1462, "low": 1451, "close": 1460 },
+      { "day": 23, "open": 1460, "high": 1468, "low": 1458, "close": 1466 },
+      { "day": 24, "open": 1466, "high": 1474, "low": 1464, "close": 1472 }
+    ],
+    "grossReturnPercent": 5.1,
+    "outcomeCategory": "modest_gain"
+  },
+  "survivorshipNote": "Included as a 'no lesson from the outcome, only from the process' case - the stock's own quiet resolution is the point: most headline-driven dips are exactly this uneventful, which is easy to forget after seeing a handful of dramatic ones."
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Decision Replay - MarketPane</title>
+    <!-- Applies the persisted/system theme before first paint, so there's no
+         flash of the wrong theme while React boots. Mirrors lib/themeStore.ts's
+         storage key and fallback order - keep the two in sync if either changes. -->
+    <script>
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('marketpane.theme')
+          var dark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {}
+      })()
+    </script>
+    <!-- Inline data-URI favicon (same vermilion spark used in the nav header) - avoids an unstyled default favicon.ico 404 without needing a real asset file. -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F0432B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18M3 12h18M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

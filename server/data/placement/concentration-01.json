@@ -1,0 +1,19 @@
+{
+  "id": "placement-concentration-01",
+  "context": "One of your holdings - a well-run retailer with 22% revenue growth and no fundamental problems - has grown to 45% of your total portfolio value after two years of strong performance.",
+  "block": {
+    "question": "Given only what you can see, is the risk here skewed to the downside, upside, or roughly balanced?",
+    "readOptions": [
+      { "id": "downside", "label": "Skewed to the downside", "correct": true },
+      { "id": "upside", "label": "Skewed to the upside", "correct": false },
+      { "id": "balanced", "label": "Roughly balanced", "correct": false }
+    ],
+    "factorQuestion": "Which of these support that read?",
+    "factorOptions": [
+      { "id": "position_45pct", "label": "The position is 45% of the total portfolio", "correct": true },
+      { "id": "single_surprise_damage", "label": "A single company-specific surprise would do outsized damage at this size", "correct": true },
+      { "id": "revenue_growth_22", "label": "The company posted 22% revenue growth", "correct": false },
+      { "id": "no_red_flags", "label": "The company has no fundamental red flags", "correct": false }
+    ]
+  }
+}

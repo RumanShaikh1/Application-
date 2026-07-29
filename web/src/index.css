@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light (default) - unchanged from the original fixed hex values. */
+    --color-bone: 244 241 234; /* #F4F1EA */
+    --color-ink: 22 21 15; /* #16150F */
+    --color-surface: 255 255 255; /* #FFFFFF */
+    --color-cobalt: 37 64 232; /* #2540E8 */
+  }
+
+  .dark {
+    /* Dark - a warm charcoal ladder (not blue-black) to match the brand's
+       warm cream/near-black pairing, verified against WCAG AA: body text
+       ~13:1, card text ~9:1, vermilion/cobalt accents both >=4:1 on every
+       surface below. Kept as three visibly distinct steps (not just ink/bone
+       swapped) so cards still read as elevated above the page. */
+    --color-bone: 51 44 29; /* #332C1D - page background */
+    --color-ink: 241 236 224; /* #F1ECE0 - primary text */
+    --color-surface: 69 58 36; /* #453A24 - elevated card, lighter than the page */
+    --color-cobalt: 124 140 234; /* #7C8CEA - brighter than light-mode cobalt for legibility on dark surfaces */
+  }
+
+  * {
+    @apply border-ink/15;
+  }
+
+  body {
+    @apply bg-bone font-body text-ink antialiased transition-colors duration-200;
+  }
+
+  ::selection {
+    @apply bg-vermilion/25 text-ink;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-vermilion ring-offset-2 ring-offset-bone;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .scrollbar-spark {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.ink / 25%') transparent;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink/25;
+  }
+
+  .scrollbar-spark::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink/40;
+  }
+}

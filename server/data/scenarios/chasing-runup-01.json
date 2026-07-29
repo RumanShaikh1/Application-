@@ -1,0 +1,135 @@
+{
+  "id": "chasing-runup-01",
+  "title": "Everyone's Talking About It",
+  "difficulty": "beginner",
+  "conceptTags": ["momentum chasing", "FOMO", "valuation", "hype cycles"],
+  "companyContext": "A small specialty-chemicals company. Over the past few weeks its share price has shot up after a viral social-media post calling it 'the next big thing'. You don't own it, and you're wondering whether to jump in.",
+  "priceSeed": [
+    { "day": 0, "open": 98, "high": 101, "low": 97, "close": 100 },
+    { "day": 1, "open": 100, "high": 113, "low": 99, "close": 112 },
+    { "day": 2, "open": 112, "high": 122, "low": 110, "close": 120 },
+    { "day": 3, "open": 120, "high": 130, "low": 118, "close": 128 },
+    { "day": 4, "open": 128, "high": 140, "low": 126, "close": 138 },
+    { "day": 5, "open": 138, "high": 147, "low": 135, "close": 145 },
+    { "day": 6, "open": 145, "high": 152, "low": 142, "close": 150 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "fundamentals",
+      "fundamentals": {
+        "Revenue growth (YoY)": "3% (down from 18% last year)",
+        "Net profit margin": "4.1% (down from 9.8%)",
+        "P/E ratio": "85 (sector average: 22)"
+      },
+      "note": "Revenue growth of +3% vs last year (it grew +18% the year before) means the company is still growing, just far more slowly than before. A profit margin of 4.1% (down from 9.8%) means it keeps less profit from every ₹100 of sales than it used to. A P/E of 85, versus 22 for similar companies, means investors are paying about four times what they pay for its peers, for every ₹1 of yearly profit. These figures are from the most recent quarter - the price started rising several weeks before any of this came out."
+    },
+    {
+      "index": 1,
+      "kind": "headline",
+      "headline": "\"Retail trading forums buzzing: 'this stock could 10x' - trading volume 6x normal\"",
+      "note": "Almost all of that extra buying volume has shown up in just the last week."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 150, "high": 168, "low": 148, "close": 165 },
+        { "day": 8, "open": 165, "high": 181, "low": 163, "close": 178 },
+        { "day": 9, "open": 178, "high": 193, "low": 175, "close": 190 },
+        { "day": 10, "open": 190, "high": 204, "low": 187, "close": 200 },
+        { "day": 11, "open": 200, "high": 214, "low": 197, "close": 210 },
+        { "day": 12, "open": 210, "high": 222, "low": 207, "close": 218 },
+        { "day": 13, "open": 218, "high": 229, "low": 215, "close": 225 },
+        { "day": 14, "open": 225, "high": 234, "low": 221, "close": 230 }
+      ],
+      "note": "The price has kept climbing since the buzz began."
+    }
+  ],
+  "choices": [
+    { "id": "buy", "label": "Buy", "description": "Buy now, while it's moving." },
+    { "id": "wait_for_confirmation", "label": "Wait for more information", "description": "Wait for the next results or more evidence." },
+    { "id": "avoid", "label": "Avoid", "description": "Don't buy this one." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["avoid"],
+    "acceptableChoiceIds": ["wait_for_confirmation"],
+    "criteria": [
+      {
+        "id": "notices_fundamentals_diverging",
+        "description": "Notices that revenue growth and margins are deteriorating even as the price rallies.",
+        "weight": 40,
+        "factorOptionIds": ["fundamentals_diverging"],
+        "matchConcepts": [
+          ["revenue growth", "margin", "declin", "deteriorat", "weak fundamental", "shrinking growth", "falling margin", "growth slow"],
+          ["even as the price", "despite the rally", "price keeps rising", "price up but", "diverg", "disconnect", "not backed by", "rally isn't supported", "price doesn't match"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "resists_fomo",
+        "description": "Doesn't treat social-media buzz or a volume surge on its own as a reason to buy.",
+        "weight": 35,
+        "factorOptionIds": ["resists_fomo"],
+        "matchConcepts": [
+          ["hype", "buzz", "social media", "forum", "fomo", "volume surge", "trending", "viral", "everyone talking", "crowd", "bandwagon"],
+          ["not a reason", "isn't enough", "on its own", "doesn't mean", "shouldn't buy just because", "need more than", "no reason to buy", "skeptical of", "not enough to buy"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "questions_valuation",
+        "description": "Flags that the P/E is far above the sector average without pointing to a fundamental reason for it.",
+        "weight": 25,
+        "factorOptionIds": ["questions_valuation"],
+        "matchConcepts": [
+          ["p/e", "pe ratio", "price to earnings", "valuation", "multiple", "expensive"],
+          ["sector average", "compared to", "far above", "high relative", "unjustified", "no reason for", "hard to justify", "overvalued", "not justified"]
+        ],
+        "minConceptsRequired": 2
+      }
+    ],
+    "factorOptions": [
+      { "id": "fundamentals_diverging", "label": "Revenue growth and profit margins have both gotten worse even as the price keeps climbing", "correct": true },
+      { "id": "resists_fomo", "label": "The rally is being driven by social-media buzz and a volume spike, not a change in the business", "correct": true },
+      { "id": "questions_valuation", "label": "The P/E is far above the sector average with no fundamental improvement to justify it", "correct": true },
+      { "id": "volume_alone", "label": "Trading volume has increased sharply", "correct": false },
+      { "id": "price_doubled", "label": "The stock has more than doubled in a few weeks", "correct": false }
+    ],
+    "idealSummary": "When the price is climbing but revenue growth and margins are shrinking, the price and the business are telling opposite stories - and the price is usually the one that's wrong. A P/E four times the peer average, with no improvement in the business to justify it, means you'd be paying up purely because a crowd is excited. Buying momentum isn't always wrong, but buying it without noticing that the fundamentals are sliding underneath is a bet on the crowd staying excited, not an investment."
+  },
+  "outcome": {
+    "summary": "The rally lasted a little longer, then the next results confirmed the weak numbers and the excitement faded. The stock gave back the entire move and more over a few weeks.",
+    "priceSeries": [
+      { "day": 0, "open": 98, "high": 101, "low": 97, "close": 100 },
+      { "day": 1, "open": 100, "high": 113, "low": 99, "close": 112 },
+      { "day": 2, "open": 112, "high": 122, "low": 110, "close": 120 },
+      { "day": 3, "open": 120, "high": 130, "low": 118, "close": 128 },
+      { "day": 4, "open": 128, "high": 140, "low": 126, "close": 138 },
+      { "day": 5, "open": 138, "high": 147, "low": 135, "close": 145 },
+      { "day": 6, "open": 145, "high": 152, "low": 142, "close": 150 },
+      { "day": 7, "open": 150, "high": 168, "low": 148, "close": 165 },
+      { "day": 8, "open": 165, "high": 181, "low": 163, "close": 178 },
+      { "day": 9, "open": 178, "high": 193, "low": 175, "close": 190 },
+      { "day": 10, "open": 190, "high": 204, "low": 187, "close": 200 },
+      { "day": 11, "open": 200, "high": 214, "low": 197, "close": 210 },
+      { "day": 12, "open": 210, "high": 222, "low": 207, "close": 218 },
+      { "day": 13, "open": 218, "high": 229, "low": 215, "close": 225 },
+      { "day": 14, "open": 225, "high": 234, "low": 221, "close": 230 },
+      { "day": 15, "open": 230, "high": 249, "low": 228, "close": 245 },
+      { "day": 16, "open": 245, "high": 264, "low": 240, "close": 260 },
+      { "day": 17, "open": 260, "high": 262, "low": 235, "close": 240 },
+      { "day": 18, "open": 240, "high": 242, "low": 196, "close": 200 },
+      { "day": 19, "open": 200, "high": 205, "low": 160, "close": 165 },
+      { "day": 20, "open": 165, "high": 168, "low": 136, "close": 140 },
+      { "day": 21, "open": 140, "high": 142, "low": 116, "close": 120 },
+      { "day": 22, "open": 120, "high": 122, "low": 101, "close": 105 },
+      { "day": 23, "open": 105, "high": 108, "low": 92, "close": 95 },
+      { "day": 24, "open": 95, "high": 97, "low": 87, "close": 90 }
+    ],
+    "grossReturnPercent": -60.9,
+    "outcomeCategory": "decline"
+  },
+  "survivorshipNote": "Represents a hype-driven small-cap rally that fully round-trips and then some - the dataset needs at least one clear speculative-bubble unwind, not just gradual declines."
+}

@@ -124,6 +124,28 @@ For trivial, **zero-behavior** changes, the verification loops are overkill. Whe
 ## Brand Assets
 - Always check the `brand_assets/` folder before designing. If logos, color guides, or images exist there, use them — do not use placeholders where real assets are available, and do not invent brand colors when a palette is defined.
 
+## Product Invariants
+Cross-cutting product rules that must survive across sessions - violating these is a regression even if the code "works."
+
+- **Tax Understanding module: no tax numbers in code.** Every rate, threshold, exemption, cess percentage, holding-period cutoff, and transaction charge lives in `server/data/tax-rates/<effective-date>.json`. The engine selects a rate set from the transaction date. A rate change is a JSON edit, never a code edit.
+- **Tax Understanding module: estimates, not advice.** Show what each option costs; never tell the user what to do. Every output is labelled an indicative estimate. The existing no-recommendations rule from `server/src/gemini.ts` applies to every generated explanation.
+- **Tax Understanding module: never show tax in isolation.** Every tax figure is shown alongside transaction costs (brokerage/STT/exchange charges/etc.) in the same view.
+- **Tax Understanding module: every number is explainable.** Each result carries a line-by-line breakdown and a plain-English explanation of which rule produced it.
+
+### Placement & Case Studies
+- **No API, ever, in the grading path.** All scoring (placement, case-study tiers, the existing-scenario factor cleanup) is deterministic, local, and instant, via the one shared grader in `server/src/grading/grader.ts`. Gemini is never called to place or grade a user — it may still power the separate jargon explainer elsewhere, never here.
+- **Never grade on outcome.** A sound decision that lost money is still correct. Holds for every tier, including the risk read.
+- **Grade judgment, not vocabulary.** Placement and tiers must never sort or score a user on whether they know a term's definition — that's the thing the product teaches. Sort on reasoning, via structured single-select/multi-select/band inputs, not free-text keyword-spotting.
+- **Bias placement and re-leveling downward.** On a borderline score, choose the lower level. Under-placement self-corrects as the user clears easy material; over-placement makes people quit.
+- **No hard content wall.** The scenario/case-study library is never fully locked behind the placement test. Guidance and a recommended path — never invisible, inaccessible content.
+- **Identity stays masked until after grading.** Case studies built on real Nifty/Sensex-name episodes withhold the company name and real dates from every payload sent before the user answers — revealed only in the post-answer debrief, alongside what actually happened. Revealing them earlier turns a risk read into a memory test.
+
+### Sandbox
+- **No API, ever, in the trading, grading, or analysis path.** Fixtures (`server/data/sandbox/*.json`) and deterministic engine code only — no Gemini, no live market data feed, no runtime LLM call of any kind. Stock analysis and statistics are authored content, generated offline once and shipped as static fixtures, never regenerated live.
+- **Stock analysis is descriptive, never advisory.** Strengths, weaknesses, and every statistic are presented so the user can form their own view — never a target price, a "should," or any framing that nudges toward a specific action. Same rule as Tax Understanding's "estimates, not advice."
+- **Every statistic is shown, never cherry-picked.** A stock's fundamentals (P/E, P/B, ROE, debt/equity, dividend yield, market cap, beta, 52-week range) are always presented in full alongside the qualitative analysis — never a subset chosen to support a narrative.
+- **The portfolio grader judges decisions, never outcomes — including good-looking ones.** A concentrated, oversized, or unhedged bet that happened to profit is not a better decision than an identical bet that didn't; both are the same decision and must grade identically. The grader never reads realized or unrealized P&L, and never reads any price after the day being evaluated. Make this explicit to the user in the product itself, not just in code comments — the temptation to equate "it worked" with "it was a good call" is exactly the mistake this mode exists to correct.
+
 ## Hard Rules
 - **Verify by running, never by assuming** — no task is done until its output has been captured and compared to expected, at least 2 rounds. The only exception is a declared `/microedit`, and only if it stays genuinely zero-behavior.
 - Do not leak secrets into code or logs; read config from env.

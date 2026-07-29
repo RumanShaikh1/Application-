@@ -1,0 +1,137 @@
+{
+  "id": "concentration-risk-01",
+  "title": "One Position, Most of the Portfolio",
+  "difficulty": "beginner",
+  "conceptTags": ["concentration risk", "diversification", "position sizing"],
+  "companyContext": "A consumer-electronics retailer that's been the best performer in your portfolio two years running. Nothing is wrong with the company - it's just grown to dominate what you own.",
+  "priceSeed": [
+    { "day": 0, "open": 301, "high": 304, "low": 298, "close": 300 },
+    { "day": 1, "open": 300, "high": 311, "low": 299, "close": 308 },
+    { "day": 2, "open": 308, "high": 319, "low": 306, "close": 316 },
+    { "day": 3, "open": 316, "high": 328, "low": 314, "close": 325 },
+    { "day": 4, "open": 325, "high": 336, "low": 323, "close": 333 },
+    { "day": 5, "open": 333, "high": 343, "low": 331, "close": 340 },
+    { "day": 6, "open": 340, "high": 351, "low": 338, "close": 348 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "fundamentals",
+      "fundamentals": {
+        "Position size (% of total portfolio)": "45%",
+        "Next-largest holding": "9%",
+        "P/E ratio": 28,
+        "Revenue growth (YoY)": "22%"
+      },
+      "note": "This stock is 45% of your total portfolio, versus 9% for your next-biggest holding - almost half of everything you own is riding on this one company. A P/E of 28 and revenue growth of +22% vs last year show the business itself is healthy and growing. You bought this at a normal size two years ago - it didn't get big because you kept adding, it simply outgrew everything else and you held on."
+    },
+    {
+      "index": 1,
+      "kind": "headline",
+      "headline": "\"Retailer posts record quarterly sales, shares touch fresh high\"",
+      "note": "The business genuinely is doing well - this isn't a story about a weakening company."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 348, "high": 359, "low": 346, "close": 356 },
+        { "day": 8, "open": 356, "high": 368, "low": 354, "close": 365 },
+        { "day": 9, "open": 365, "high": 377, "low": 363, "close": 374 },
+        { "day": 10, "open": 374, "high": 387, "low": 372, "close": 384 },
+        { "day": 11, "open": 384, "high": 399, "low": 382, "close": 396 },
+        { "day": 12, "open": 396, "high": 413, "low": 394, "close": 410 },
+        { "day": 13, "open": 410, "high": 427, "low": 408, "close": 424 },
+        { "day": 14, "open": 424, "high": 443, "low": 422, "close": 440 }
+      ],
+      "note": "The price has kept climbing on the strong results."
+    }
+  ],
+  "choices": [
+    { "id": "buy_more", "label": "Buy more", "description": "Add to it, it keeps winning." },
+    { "id": "hold", "label": "Hold", "description": "Leave it exactly as is." },
+    { "id": "trim", "label": "Trim the position", "description": "Sell part of it to bring it back to a normal size." },
+    { "id": "sell_all", "label": "Sell the entire position", "description": "Sell all of it." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["trim"],
+    "acceptableChoiceIds": ["hold"],
+    "criteria": [
+      {
+        "id": "recognizes_concentration",
+        "description": "Identifies that the position's SIZE - not the company's quality - is the primary risk here.",
+        "weight": 40,
+        "factorOptionIds": ["recognizes_concentration"],
+        "matchConcepts": [
+          ["concentrat", "position size", "too big", "oversized", "too large a share", "percentage of the portfolio", "portfolio share", "allocation"],
+          ["not about the company", "quality isn't the issue", "not a quality problem", "regardless of how good", "even though the company is good", "isn't the business"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "separates_conviction_from_sizing",
+        "description": "Understands that continued conviction in the company doesn't remove the need to manage position size.",
+        "weight": 35,
+        "factorOptionIds": ["conviction_vs_sizing"],
+        "matchConcepts": [
+          ["conviction", "still believe", "still like the company", "confidence in the company", "still bullish"],
+          ["still need to manage", "doesn't remove the need", "still size", "still trim", "regardless of conviction", "sizing matters anyway"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "not_swayed_by_momentum",
+        "description": "Doesn't treat the record-quarter headline as a reason to add even more to an already-oversized position.",
+        "weight": 25,
+        "factorOptionIds": ["not_swayed_by_momentum"],
+        "matchConcepts": [
+          ["record quarter", "strong quarter", "keeps winning", "momentum", "great results", "good earnings"],
+          ["not a reason to add", "doesn't mean add more", "shouldn't add more", "already oversized", "already too big", "not a reason to buy more"]
+        ],
+        "minConceptsRequired": 2
+      }
+    ],
+    "factorOptions": [
+      { "id": "recognizes_concentration", "label": "The position is 45% of the total portfolio - the size itself is the risk, not the company's quality", "correct": true },
+      { "id": "conviction_vs_sizing", "label": "Still having conviction in the company doesn't remove the need to manage position size", "correct": true },
+      { "id": "not_swayed_by_momentum", "label": "A strong quarter isn't a reason to add even more to an already-oversized position", "correct": true },
+      { "id": "revenue_growth_22", "label": "The company posted 22% revenue growth", "correct": false },
+      { "id": "fresh_high", "label": "The stock just touched a fresh high", "correct": false }
+    ],
+    "idealSummary": "The company isn't the problem - its size in your portfolio is. Even an excellent business becomes a risk when almost half of everything you own depends on it, because one bad quarter or one surprise specific to that company would do outsized damage to your whole portfolio. Trimming isn't a judgment that the company is bad; it's basic portfolio hygiene - making sure no single name can sink you."
+  },
+  "outcome": {
+    "summary": "A few weeks later the company revealed a serious supply-chain problem that had been building quietly. The stock fell hard and took months to recover. Someone who'd trimmed still felt it - just on a smaller slice. Someone who'd added on the way up felt it on a much bigger one.",
+    "priceSeries": [
+      { "day": 0, "open": 301, "high": 304, "low": 298, "close": 300 },
+      { "day": 1, "open": 300, "high": 311, "low": 299, "close": 308 },
+      { "day": 2, "open": 308, "high": 319, "low": 306, "close": 316 },
+      { "day": 3, "open": 316, "high": 328, "low": 314, "close": 325 },
+      { "day": 4, "open": 325, "high": 336, "low": 323, "close": 333 },
+      { "day": 5, "open": 333, "high": 343, "low": 331, "close": 340 },
+      { "day": 6, "open": 340, "high": 351, "low": 338, "close": 348 },
+      { "day": 7, "open": 348, "high": 359, "low": 346, "close": 356 },
+      { "day": 8, "open": 356, "high": 368, "low": 354, "close": 365 },
+      { "day": 9, "open": 365, "high": 377, "low": 363, "close": 374 },
+      { "day": 10, "open": 374, "high": 387, "low": 372, "close": 384 },
+      { "day": 11, "open": 384, "high": 399, "low": 382, "close": 396 },
+      { "day": 12, "open": 396, "high": 413, "low": 394, "close": 410 },
+      { "day": 13, "open": 410, "high": 427, "low": 408, "close": 424 },
+      { "day": 14, "open": 424, "high": 443, "low": 422, "close": 440 },
+      { "day": 15, "open": 440, "high": 456, "low": 438, "close": 452 },
+      { "day": 16, "open": 452, "high": 468, "low": 450, "close": 465 },
+      { "day": 17, "open": 465, "high": 481, "low": 463, "close": 478 },
+      { "day": 18, "open": 478, "high": 482, "low": 465, "close": 470 },
+      { "day": 19, "open": 470, "high": 472, "low": 455, "close": 460 },
+      { "day": 20, "open": 460, "high": 462, "low": 385, "close": 380 },
+      { "day": 21, "open": 380, "high": 385, "low": 335, "close": 340 },
+      { "day": 22, "open": 340, "high": 350, "low": 310, "close": 315 },
+      { "day": 23, "open": 315, "high": 322, "low": 296, "close": 300 },
+      { "day": 24, "open": 300, "high": 305, "low": 288, "close": 292 }
+    ],
+    "grossReturnPercent": -33.6,
+    "outcomeCategory": "decline"
+  },
+  "survivorshipNote": "Included to show that concentration risk materialises even in fundamentally sound companies with no visible red flags at decision time - the dataset needs 'good company, bad sizing' alongside outright failures, not just obviously troubled ones."
+}

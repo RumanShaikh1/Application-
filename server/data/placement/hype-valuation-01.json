@@ -1,0 +1,19 @@
+{
+  "id": "placement-hype-valuation-01",
+  "context": "A small-cap component maker's stock has doubled in three weeks after a viral social-media post. Revenue grew just 2% last quarter, versus 20% the year before, and the P/E is 60 against a sector average of 18.",
+  "block": {
+    "question": "Given only what you can see, is the risk here skewed to the downside, upside, or roughly balanced?",
+    "readOptions": [
+      { "id": "downside", "label": "Skewed to the downside", "correct": true },
+      { "id": "upside", "label": "Skewed to the upside", "correct": false },
+      { "id": "balanced", "label": "Roughly balanced", "correct": false }
+    ],
+    "factorQuestion": "Which of these support that read?",
+    "factorOptions": [
+      { "id": "revenue_slowed", "label": "Revenue growth has slowed sharply while the price has doubled", "correct": true },
+      { "id": "pe_stretched", "label": "The P/E is far above the sector average with no fundamental improvement to justify it", "correct": true },
+      { "id": "social_buzz", "label": "The stock is getting a lot of social-media attention", "correct": false },
+      { "id": "volume_up", "label": "Trading volume has increased", "correct": false }
+    ]
+  }
+}

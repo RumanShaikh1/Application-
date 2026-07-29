@@ -1,0 +1,131 @@
+{
+  "id": "leverage-red-flag-01",
+  "title": "The Most Ambitious Project Yet",
+  "difficulty": "intermediate",
+  "conceptTags": ["leverage", "debt risk", "reading filings", "narrative vs. disclosure"],
+  "companyContext": "A property developer expanding fast into several new city projects at once, paying for them mostly by borrowing. You hold a moderate position.",
+  "priceSeed": [
+    { "day": 0, "open": 218, "high": 222, "low": 216, "close": 220 },
+    { "day": 1, "open": 220, "high": 228, "low": 219, "close": 226 },
+    { "day": 2, "open": 226, "high": 234, "low": 224, "close": 232 },
+    { "day": 3, "open": 232, "high": 240, "low": 230, "close": 238 },
+    { "day": 4, "open": 238, "high": 244, "low": 236, "close": 242 },
+    { "day": 5, "open": 242, "high": 248, "low": 240, "close": 246 },
+    { "day": 6, "open": 246, "high": 252, "low": 244, "close": 250 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "filing",
+      "filingSummary": "Quarterly filing shows the debt-to-equity ratio has risen to 3.4x, up from 1.1x eighteen months ago, driven by loans taken to fund five new projects simultaneously. Interest coverage ratio has fallen to 1.6x.",
+      "note": "A debt-to-equity ratio of 3.4x, up from 1.1x eighteen months ago, means it now owes ₹3.40 for every ₹1 of its own money - roughly triple the debt load of a year and a half ago. An interest coverage ratio of 1.6x means its profits are only 1.6 times its interest bill, so even a small dip in earnings could leave it struggling to pay the interest. The company describes all this in its own filing as 'aggressive growth investment'."
+    },
+    {
+      "index": 1,
+      "kind": "headline",
+      "headline": "\"Company unveils its most ambitious project yet - analysts call it a 'transformational' expansion\"",
+      "note": "This ran the same week as the filing above."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 250, "high": 260, "low": 249, "close": 258 },
+        { "day": 8, "open": 258, "high": 266, "low": 256, "close": 264 },
+        { "day": 9, "open": 264, "high": 272, "low": 262, "close": 270 },
+        { "day": 10, "open": 270, "high": 277, "low": 268, "close": 275 },
+        { "day": 11, "open": 275, "high": 282, "low": 273, "close": 280 },
+        { "day": 12, "open": 280, "high": 286, "low": 278, "close": 284 },
+        { "day": 13, "open": 284, "high": 289, "low": 282, "close": 287 },
+        { "day": 14, "open": 287, "high": 292, "low": 285, "close": 290 }
+      ],
+      "note": "Higher since that headline."
+    }
+  ],
+  "choices": [
+    { "id": "buy_more", "label": "Buy more", "description": "The growth story is exciting, add." },
+    { "id": "hold", "label": "Hold", "description": "Leave it as is." },
+    { "id": "trim", "label": "Trim the position", "description": "Sell part to reduce exposure." },
+    { "id": "sell_all", "label": "Sell the entire position", "description": "Sell all of it." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["sell_all"],
+    "acceptableChoiceIds": ["trim"],
+    "criteria": [
+      {
+        "id": "notices_leverage_spike",
+        "description": "Notices the sharp rise in debt-to-equity and the falling interest coverage ratio disclosed in the filing.",
+        "weight": 40,
+        "factorOptionIds": ["leverage_spike"],
+        "matchConcepts": [
+          ["debt-to-equity", "debt to equity", "leverage", "borrowing", "debt has risen", "debt increased", "more debt"],
+          ["interest coverage", "coverage ratio", "coverage falling", "coverage dropped"]
+        ],
+        "minConceptsRequired": 1
+      },
+      {
+        "id": "separates_narrative_from_disclosure",
+        "description": "Doesn't let an exciting expansion headline override what the filing discloses about how that expansion is being funded.",
+        "weight": 35,
+        "factorOptionIds": ["narrative_vs_disclosure"],
+        "matchConcepts": [
+          ["exciting", "growth story", "ambitious", "expansion", "headline"],
+          ["filing", "disclosed", "disclosure", "the numbers show", "according to the filing", "what the filing says"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "understands_interest_coverage_risk",
+        "description": "Understands that a falling interest coverage ratio means a rate rise or revenue miss could make debt servicing difficult.",
+        "weight": 25,
+        "factorOptionIds": ["interest_coverage_risk"],
+        "matchConcepts": [
+          ["rate rise", "rate increase", "revenue miss", "harder to service", "debt servicing", "cover interest payments", "afford the interest", "vulnerable to"]
+        ],
+        "minConceptsRequired": 1
+      }
+    ],
+    "factorOptions": [
+      { "id": "leverage_spike", "label": "Debt-to-equity has tripled to 3x in eighteen months, and interest coverage has fallen to 1.6x", "correct": true },
+      { "id": "narrative_vs_disclosure", "label": "The 'transformational' headline doesn't change what the filing discloses about how the expansion is funded", "correct": true },
+      { "id": "interest_coverage_risk", "label": "With coverage this thin, a rate rise or a revenue miss could make the debt hard to service", "correct": true },
+      { "id": "transformational_headline", "label": "Analysts are calling the expansion transformational", "correct": false },
+      { "id": "price_risen", "label": "The stock price has risen since the expansion was announced", "correct": false }
+    ],
+    "idealSummary": "A company can be growing and getting more dangerous at the same time - and an exciting expansion headline doesn't cancel out what the filing shows about how that expansion is paid for. Debt tripling in eighteen months, with interest coverage falling toward 1.5x, means very little cushion before a single bad quarter or a rate rise makes the interest hard to pay. Reducing exposure here isn't doubting the growth story - it's respecting what heavy borrowing does to the downside."
+  },
+  "outcome": {
+    "summary": "About six weeks later a rate increase pushed its borrowing costs up just as one of its five projects fell behind schedule. Interest coverage slipped further, a rating agency downgraded its debt, and the stock gave up its gains and more as investors realized how much of the 'growth' was borrowed.",
+    "priceSeries": [
+      { "day": 0, "open": 218, "high": 222, "low": 216, "close": 220 },
+      { "day": 1, "open": 220, "high": 228, "low": 219, "close": 226 },
+      { "day": 2, "open": 226, "high": 234, "low": 224, "close": 232 },
+      { "day": 3, "open": 232, "high": 240, "low": 230, "close": 238 },
+      { "day": 4, "open": 238, "high": 244, "low": 236, "close": 242 },
+      { "day": 5, "open": 242, "high": 248, "low": 240, "close": 246 },
+      { "day": 6, "open": 246, "high": 252, "low": 244, "close": 250 },
+      { "day": 7, "open": 250, "high": 260, "low": 249, "close": 258 },
+      { "day": 8, "open": 258, "high": 266, "low": 256, "close": 264 },
+      { "day": 9, "open": 264, "high": 272, "low": 262, "close": 270 },
+      { "day": 10, "open": 270, "high": 277, "low": 268, "close": 275 },
+      { "day": 11, "open": 275, "high": 282, "low": 273, "close": 280 },
+      { "day": 12, "open": 280, "high": 286, "low": 278, "close": 284 },
+      { "day": 13, "open": 284, "high": 289, "low": 282, "close": 287 },
+      { "day": 14, "open": 287, "high": 292, "low": 285, "close": 290 },
+      { "day": 15, "open": 290, "high": 300, "low": 288, "close": 298 },
+      { "day": 16, "open": 298, "high": 307, "low": 296, "close": 305 },
+      { "day": 17, "open": 305, "high": 306, "low": 297, "close": 300 },
+      { "day": 18, "open": 300, "high": 302, "low": 273, "close": 275 },
+      { "day": 19, "open": 275, "high": 277, "low": 238, "close": 240 },
+      { "day": 20, "open": 240, "high": 242, "low": 208, "close": 210 },
+      { "day": 21, "open": 210, "high": 213, "low": 193, "close": 195 },
+      { "day": 22, "open": 195, "high": 197, "low": 178, "close": 180 },
+      { "day": 23, "open": 180, "high": 183, "low": 170, "close": 172 },
+      { "day": 24, "open": 172, "high": 175, "low": 163, "close": 165 }
+    ],
+    "grossReturnPercent": -43.1,
+    "outcomeCategory": "decline"
+  },
+  "survivorshipNote": "Illustrates a leverage-driven decline that was fully disclosed in a filing well before the price reacted - included so the dataset has an example where the red flag was hiding in plain sight in the numbers, not something only obvious in hindsight."
+}

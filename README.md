@@ -1,34 +1,41 @@
 # MarketPane
 
-A Chrome/Edge extension + local server, replacing the old Electron app. The extension injects the "Jargon Buster" sidebar directly into pages you browse in your real browser; the local server holds the Gemini API key and proxies Yahoo Finance so neither ever ships inside extension code.
+A beginner trading-education platform for the Indian market, plus the Chrome/Edge extension it grew out of. The extension injects the "Jargon Buster" sidebar directly into pages you browse; **Decision Replay** (`web/`) puts you through anonymised historical market scenarios graded on the quality of your decision, never the outcome; **the Simulator** (`web/`, `/simulator`) is a virtual portfolio traded against real live market data, graded on process - position sizing, diversification, and your stated reasoning - never on profit or loss; **Tax Understanding** (`web/`, `/tax`, `/tax/fy-overview`) is a standalone, self-contained calculator showing what a trade actually costs after tax and transaction charges, with no market data feed, login, or portfolio state of its own. All are backed by one local server, which holds the Gemini API key and proxies market data so it never ships inside client code.
+
+> **⚠️ Tax Understanding is not reviewed by a qualified CA.** Every rate, threshold, and charge in `server/data/tax-rates/*.json` is a best-effort figure assembled from public sources, not verified by a tax professional - **do not rely on it for real filing, and do not launch it publicly before a CA reviews the rate data.** It also does not yet handle bonus issues, stock splits, buybacks, or rights issues (cost-of-acquisition adjustments for all four are unmodelled), and does not model the income-tax surcharge (only cess). See "Tax Understanding" below for full scope.
 
 ```
-server/     local Express app - Gemini + Yahoo Finance, holds GEMINI_API_KEY
-extension/  Manifest V3 extension - content script (sidebar UI), background worker
-shared/     TypeScript types used by both
-launcher/   standalone MarketPane.exe-style desktop app (WinForms) that links a browser and starts the server
+server/     local Express app - Gemini + market data provider, scenario fixtures + rubric scoring, tax rate data + engine, holds GEMINI_API_KEY
+extension/  Manifest V3 extension - content script (Jargon Buster sidebar UI), background worker
+web/        standalone React app - Decision Replay (scenario list, player, results, progress)
+mobile/     Expo/React Native app - Decision Replay, same core loop, native iOS/Android
+shared/     TypeScript types used by all client workspaces
+launcher/   standalone MarketPane.exe-style desktop app (WinForms/PowerShell) that links a browser and starts the server
+            (launcher/MarketPane.Desktop/ is an unused, built-but-not-runnable alternative - see Notes below)
 ```
 
 ## Everyday use (after one-time setup below)
 
 Double-click the **MarketPane** icon on the Desktop. It's a real app window (not a background script) - the icon is the actual brand spark mark.
 
-- **First run:** prompts you to link a browser (auto-detects Chrome/Edge/Firefox/Brave, or browse for another). This is saved in `%APPDATA%\MarketPane\config.json`.
-- **Every run:** starts the local server if it isn't already running, shows status ("Server: running on localhost:8787"), and opens your linked browser. The window stays open with an **Open in Browser** button (to reopen without relaunching the app) and **Change Linked Browser...**.
+- **First run:** prompts you to link a browser. Detection reads the Windows "App Paths" registry keys (the same mechanism every browser installer registers, and the one Windows itself uses to resolve `chrome`/`msedge`/etc.), so it finds Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc regardless of *where* they're installed - not just the default Program Files location. If somehow nothing is found, the file picker opens automatically instead of making you find "Other" yourself. This is saved in `%APPDATA%\MarketPane\config.json`.
+- **Every run:** starts the local API server if it isn't already running, then the `web/` app's dev server, then opens your linked browser straight to **the Simulator** (`localhost:5173/simulator`) in **app mode** - a borderless window with no address bar, tabs, or bookmarks (Chromium's `--app=<url>` flag), not a blank tab and not a normal browser window either. It's still the real, already-installed browser process underneath (full internet access), just launched to look and feel like a standalone application. Status updates as each piece comes up ("Server: running - starting app..." then "Running: localhost:8787 (server), localhost:5173 (app)"). The window stays open with an **Open in Browser** button (to reopen the Simulator without relaunching the app) and **Change Linked Browser...**.
 - Any failure (missing dependencies, server not responding, browser not found) shows a real error dialog - nothing fails silently.
 
-The server keeps running in the background after you close the app/browser, so relaunching later is instant. To stop it, end the `node`/`tsx` process in Task Manager.
+Both the API server and the `web/` dev server keep running in the background after you close the app/browser, so relaunching later is instant. To stop them, end the `node`/`tsx` (API) and `node`/`vite` (`web/`) processes in Task Manager.
 
 ## One-time setup
 
-**1. Install server dependencies:**
+**1. Install server and web app dependencies:**
 
 ```
 cd server
 npm install
+cd ../web
+npm install
 ```
 
-Add your Gemini key to `server/.env` (copy `server/.env.example` first) if it isn't already there.
+Add your Gemini key to `server/.env` (copy `server/.env.example` first) if it isn't already there. The desktop launcher starts both `server/` and `web/` for you on every run (see "Everyday use" above) - this step just needs to have happened once first.
 
 **2. Build the extension:**
 
@@ -64,15 +71,89 @@ From here on, just double-click the Desktop icon (see "Everyday use" above).
 
 **During development:** `npm run watch` inside `extension/` rebuilds on file changes - reload the extension at `chrome://extensions` (the circular arrow icon on the card) to pick up changes, then refresh the page you're testing on.
 
+## Decision Replay (`web/`)
+
+```
+cd web
+npm install
+npm run dev
+```
+
+Opens on `http://localhost:5173` (the server must already be running - see above). Play a scenario end to end: read what's revealed at each stage, click **Reveal next** to progress, choose an action and explain your reasoning on the final stage, and submit to see your rubric-based score, feedback, and the anonymised outcome. Progress is tracked per-browser in `localStorage` (no accounts yet) - see the **Progress** tab.
+
+`npm run build` produces a static `web/dist/` you can serve from anywhere; `npm run typecheck` runs `tsc --noEmit`.
+
+**Scoring calls no LLM at all - zero Gemini cost per answer.** The score is 70% which action you picked (`soundChoiceIds`/`acceptableChoiceIds` - always deterministic) and 30% whether your typed rationale matches the scenario's rubric criteria, graded locally by `server/src/scenarios/matchRationale.ts` against hand-authored `matchConcepts` on each criterion (see the `*.json` files in `server/data/scenarios/`) - clusters of alternative words/phrases (including partial word stems, so "concentrat" catches concentration/concentrated/concentrating for free) that all point at the same underlying idea. A criterion matches once enough of its clusters show up in what you wrote. This is deliberately more literal than an LLM judge - it can reward an anticipated phrasing and miss a genuinely novel one nobody wrote a cluster for - traded off against being instant and free to run as many times as you like. `matchRationale.test.ts` runs the matcher against a realistic well-reasoned rationale and a shallow one for every shipped scenario, asserting the former matches everything and the latter matches nothing.
+
+Scenario content lives in `server/data/scenarios/*.json`, one file per scenario, validated against the `Scenario` type in `shared/types.ts` at server startup. Add a new scenario by dropping in another fixture file with a unique `id` - no code changes needed.
+
+## Simulator (`web/`, `/simulator`)
+
+A virtual portfolio (₹1,00,000 starting cash, clearly labelled as virtual - no real money, no order routing, no broker API anywhere) traded against the same live `MarketDataProvider` the extension's stock stats use. Look up any real NSE/BSE symbol, buy or sell, write a short rationale, and submit - the response is a **process score**, not a profit/loss score:
+
+- **Position sizing** and **diversification** are checked deterministically from the resulting portfolio (25% single-position / 40% single-sector guidelines) - never sent to Gemini, and never blocking the trade itself. The simulator is honest about consequences, not a risk-control system.
+- **Rationale quality** (is it grounded in something checkable, does it show cost awareness) is the only part Gemini classifies, via the same constrained-JSON-schema pattern Decision Replay uses - the score itself always comes from deterministic code.
+- Every trade shows its real brokerage/STT/exchange-fee/slippage breakdown (`calculateTradeCost` in `server/src/scenarios/costModel.ts`, sharing its rate constants with Decision Replay's round-trip cost model).
+- Portfolio and trade history persist in `localStorage` (`web/src/lib/portfolioStore.ts`), same no-accounts-yet pattern as Decision Replay's progress tracking - the portfolio itself travels to the server and back on every trade request rather than living server-side.
+
+No separate setup - it's part of the same `web/` app (`npm run dev`, see above). `web/scripts/interact-simulator.mjs` drives the full loop (fresh portfolio, quote lookup, buy, sell, full position close, insufficient-cash error, mobile width) for screenshot verification.
+
+## Tax Understanding (`web/`, `/tax`, `/tax/fy-overview`)
+
+> **⚠️ Not reviewed by a qualified CA - see the warning at the top of this file before relying on any figure it produces, and before any public launch.**
+
+Answers "what does this trade actually cost you?", not just "what's the tax rate?" - brokerage, STT, exchange charges, and the difference between capital gains and business income are shown alongside every tax figure, never in isolation, because for short holding periods those charges routinely exceed the tax difference.
+
+- **`/tax`** - enter a trade (buy/sell price, quantity, dates, trade type) and get a full itemised breakdown: gross gain, exemption consumed, tax, cess, every transaction charge, and net proceeds, each with a plain-English explanation of the rule that produced it. Intraday and F&O trades are detected from the trade type and correctly classified as business income (Schedule BP, taxed at your income slab rate) rather than presented as STCG/LTCG - a day trader at a 30% slab pays worse than the 20% STCG rate they may assume applies.
+- **The days-to-long-term counter** - for a still-short-term equity delivery position, shows days remaining until the 12-month cutoff and the rupee difference between selling today and waiting. It never ships without **the counterweight**: the adverse price move that would erase the entire tax saving from waiting, computed by `server/src/tax/breakeven.ts` via bisection against the deterministic engine (not a separate formula, so it can never drift from the numbers it's comparing against).
+- **`/tax/fy-overview`** - manual entry of gains already realised this financial year shows remaining ₹1.25L LTCG exemption headroom; adding open positions sitting on an unrealised loss shows which losses the set-off rules would let you book against which gains before 31 March, respecting the asymmetric rules (short-term losses can offset both short- and long-term gains; long-term losses only offset long-term gains) and warning loudly that carry-forward of unabsorbed losses requires filing by the due date. Presented as "here is what the rules permit," never as an instruction to sell. Nothing is sent anywhere until you use the checker - state lives in this browser's `localStorage` only (`web/src/lib/taxStore.ts`), same no-accounts pattern as Decision Replay/Simulator.
+- **Explain in plain English** (on request, per result) calls Gemini through `server/src/tax/explainTaxResult.ts` to narrate an *already-computed* result - the model is explicitly forbidden from computing, estimating, or asserting any figure, or from introducing any rule/section not present in the data it's handed (a real gap caught during verification: an early prompt let the model assert an unrelated Section 87A claim on an intraday result where no such warning existed - the prompt now explicitly forbids introducing anything not in the given breakdown/warnings).
+
+No tax rate, threshold, exemption, cess percentage, holding-period cutoff, or transaction charge is hardcoded in application code - all of it lives in `server/data/tax-rates/<effective-date>.json`, one file per date a rule set took effect (not one per financial year - the July 2024 Budget changed rates *inside* FY2024-25, which a one-file-per-FY scheme can't represent). The engine (`server/src/tax/`) picks the correct file from the transaction date and is otherwise pure and dependency-free - `cd server && npm test` covers golden worked examples (including a grandfathered pre-2018 holding, the Section 87A-does-not-apply case, a loss set-off case, and selling one day before vs. after the 12-month cutoff), a property test that net proceeds always reconciles exactly to gross proceeds minus every itemised line, a test that a rate-set JSON edit alone changes output with zero code changes, and a test that intraday/F&O input can never yield an STCG/LTCG classification. `web/scripts/interact-tax.mjs` drives both routes end to end for screenshot verification (the centrepiece counter+counterweight, validation errors, the expandable breakdown, the live Gemini explanation, and the FY overview's headroom/loss-harvesting flow, each at desktop and mobile width).
+
+**Out of scope for v1:** broker statement import, live prices, user accounts, ITR generation/filing, and any non-equity asset class (property, gold, debt funds, NRI cases). See the CA-review warning above for the two known gaps in the equity math itself.
+
+## Decision Replay Mobile (`mobile/`)
+
+A native port of the same Decision Replay loop (Expo + React Native + NativeWind + React Navigation), for a phone instead of a browser tab. Same server, same API, same rubric scoring, same non-negotiable framing - a different client, not a different product.
+
+```
+cd mobile
+npm install
+```
+
+Then, when you're ready to actually run it:
+
+- **Android emulator:** set `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8787` (the emulator's alias for the host machine's `localhost` - plain `localhost` from inside the emulator means the emulator itself, not your PC) before `npm run android`.
+- **iOS simulator:** `localhost` works as-is (the simulator shares the host's network stack) - no env var needed.
+- **A physical phone:** set `EXPO_PUBLIC_API_BASE_URL` to your dev machine's LAN IP (e.g. `http://192.168.1.42:8787`) and make sure the phone is on the same network - a real device can't reach `localhost` on your PC.
+
+`npm run typecheck` runs `tsc --noEmit`. `shared/types.ts` is imported directly via relative paths (not the `@shared/*` alias `web/`/`extension/` use) since aliasing it through Metro needs an extra Babel plugin that couldn't be verified without actually running the bundler - see `mobile/metro.config.js`'s comment for the (separate, required either way) `watchFolders` fix that lets Metro see outside its project root at all.
+
 ## Verifying changes
 
-`extension/scripts/verify-extension.mjs <label> [url]` launches a real Chrome with the built extension loaded, navigates to a page, and screenshots it to `temporary screenshots/`. `extension/scripts/interact.mjs <label> <open|highlight|stock-detail> [url]` drives the same flows a user would (opening the sidebar, highlighting real page text, clicking a stock). The server must be running for `highlight`/`stock-detail` to return real data.
+**Extension:** `extension/scripts/verify-extension.mjs <label> [url]` launches a real Chrome with the built extension loaded, navigates to a page, and screenshots it to `temporary screenshots/`. `extension/scripts/interact.mjs <label> <open|highlight|stock-detail> [url]` drives the same flows a user would (opening the sidebar, highlighting real page text, clicking a stock). The server must be running for `highlight`/`stock-detail` to return real data.
+
+**Decision Replay:** `web/scripts/screenshot.mjs <label> [path] [width] [height]` screenshots a single route (both the web and API servers must already be running). `web/scripts/interact.mjs` drives the full loop - list, staged reveal, keyboard-only choice selection and submission, results, progress, and the 404/error states - screenshotting each one.
+
+**Simulator:** `web/scripts/interact-simulator.mjs` drives a fresh portfolio through a quote lookup, a buy (including a validation-error and an insufficient-cash pass), and the resulting score screen, then checks the dashboard at mobile width.
+
+**Tax Understanding:** `web/scripts/interact-tax.mjs` drives the comparator (short-term counter + counterweight, validation errors, intraday breakdown, live Gemini explanation) and the FY overview (headroom tracker, loss-harvesting checker) at desktop and mobile width. Server-side, `cd server && npm test` covers the engine (see "Tax Understanding" above).
+
+**Server logic:** `cd server && npm test` runs the Vitest unit suite (`src/**/*.test.ts`) covering the TTL cache, stage-gating (asserts a stage response can never leak a later stage or the rubric/outcome), rubric scoring, the local rationale matcher (`matchRationale.test.ts` - a realistic well-reasoned rationale matches every criterion and a shallow one matches none, for every shipped scenario), the cost model (both Decision Replay's round-trip version and the simulator's single-leg version - and that composing two single legs reproduces the round-trip figures exactly), the simulator's portfolio engine (buy/sell math, average-cost recomputation, position-size and diversification thresholds), and the Tax Understanding engine (golden worked examples, reconciliation, rate-set-swap, and classification-safety properties - see "Tax Understanding" above).
+
+**Mobile:** `cd mobile && npm run typecheck` (no simulator/emulator run yet in this environment - `mobile/` has been built and typechecked, not launched).
 
 ## Notes
 
-- The server binds to `localhost:8787` only (`PORT` in `server/.env` to change it) - it's not reachable from outside your machine.
+- The server binds to `localhost:8787` only (`PORT` in `server/.env` to change it) - it's not reachable from outside your machine. CORS allows only `chrome-extension://` origins and the web app's dev origin (`WEB_ORIGIN` in `server/.env`, defaults to `http://localhost:5173`) - not arbitrary websites. CORS doesn't need to (and doesn't) cover `mobile/`: it's a browser-enforced mechanism, and React Native's networking stack isn't a browser.
+- `mobile/package.json` pins `react` and `react-native` via an `"overrides"` field. Without it, `nativewind`'s own (non-peer) dependency on a newer `react-native` gets nested privately by npm, which silently breaks TypeScript's `className` prop augmentation (it lands on the wrong, nested copy) - and would be a real runtime hazard regardless of TypeScript, since React and React Native both require being a true singleton in one app.
+- Decision Replay never grades on outcome, always anonymises scenarios (no real tickers/company names/dates - the x-axis is "Day 0, Day 1, ..."), never gives investment advice, and never shows a frictionless return figure (see `server/src/scenarios/costModel.ts`). Rationale grading is entirely local (`server/src/scenarios/matchRationale.ts`, see "Decision Replay" above) - no Gemini call, no per-answer API cost.
+- The Simulator trades real, current symbols by design (unlike Decision Replay, anonymisation doesn't apply - this is forward-looking practice, not a historical lesson to avoid answering from memory). It still never gives investment advice (the Gemini prompt in `server/src/simulator/evaluateTradeRationale.ts` is explicit that it grades reasoning quality, never the security itself), never grades on price movement, and never presents anything but virtual currency. `server/src/scoring.ts`'s `weightedCriteriaScore` is the one shared scoring primitive both Decision Replay and the Simulator build their (different) score formulas on top of.
+- Tax Understanding's cross-cutting rules (no hardcoded tax numbers, estimates never advice, tax never shown without transaction charges, every number explainable) are written down as `## Product Invariants` in `CLAUDE.md` specifically so they survive future sessions - violating one is a regression even if the code still runs and the tests still pass.
 - `extension/scripts/generate-icons.mjs` regenerates the toolbar icons if you ever want to tweak the mark; `launcher/assets/build-icon.mjs` rebuilds the desktop app's `.ico` from those same PNGs (run `create-shortcut.ps1` again afterward).
 - Nothing here is published to the Chrome Web Store - it's loaded unpacked, same as any local dev extension.
 - The desktop app doesn't shut the server down when you close it - it's designed to just sit running in the background like any other local dev server. Kill it via Task Manager (`node.exe`) if you want it fully stopped.
 - `launcher/scripts/capture-window.ps1`, `click-button.ps1`, and `capture-desktop.ps1` are dev tools for testing the WinForms app headlessly (screenshot a window by title, synthetically click a button by name) - the native-app equivalent of the extension's Puppeteer scripts. Both filter by owning process name (default `powershell`), not just window title - a Windows Terminal tab or other app can coincidentally share this app's exact window title.
 - `MarketPane.ps1` explicitly opts into per-monitor DPI awareness (`SetProcessDpiAwarenessContext`) since plain `powershell.exe` declares none - without it, Windows silently renders the whole window at 96dpi and stretches the bitmap to fit a scaled display, which looks blurry. All control positions cascade from the actual measured bottom of the control above them (`$label.Bottom + gap`) rather than hardcoded pixel offsets - a fixed offset that looks fine at 100% scaling can genuinely overlap at 150%+ once a bold/larger font renders taller than expected.
+- **`launcher/MarketPane.Desktop/` is a compiled WinForms + WebView2 app that embeds the web app in one real window instead of launching a separate browser process at all - it builds cleanly (`dotnet build`) but is not currently used.** On the machine this was built on, Windows 11's Smart App Control blocks any freshly-compiled, unsigned `.exe` from running at all - confirmed via Code Integrity event logs, and true regardless of whether it's launched directly or via `dotnet run`. Disabling Smart App Control is a one-way door on Windows 11 (only reversible via a full OS reset), so this repo falls back to `MarketPane.ps1`'s app-mode browser window (above) instead of asking for that trade-off. If your machine doesn't have Smart App Control enabled, or you code-sign the executable, this project is a ready-to-use alternative - point `create-shortcut.ps1` at `MarketPane.Desktop/bin/Release/net8.0-windows/MarketPane.Desktop.exe` (after `dotnet build -c Release`) instead of `MarketPane.ps1`.

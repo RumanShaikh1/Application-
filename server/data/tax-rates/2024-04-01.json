@@ -1,0 +1,91 @@
+{
+  "id": "2024-04-01",
+  "financialYear": "2024-25",
+  "effectiveFrom": "2024-04-01",
+  "description": "FY2024-25 pre-Budget rates for listed equity, effective from the start of the financial year until 22 July 2024. Superseded by 2024-07-23.json.",
+  "source": "Income-tax Act provisions as they stood before Finance (No. 2) Act, 2024. NOT YET REVIEWED BY A QUALIFIED CA - see README.",
+
+  "cessRate": 0.04,
+
+  "holdingPeriod": {
+    "listedEquityLongTermCutoffMonths": 12
+  },
+
+  "capitalGains": {
+    "shortTerm": {
+      "section": "111A",
+      "rate": 0.15,
+      "description": "STT-paid short-term capital gains on listed equity, held 12 months or less."
+    },
+    "longTerm": {
+      "section": "112A",
+      "rate": 0.10,
+      "exemptionAmountPerFY": 100000,
+      "indexationAllowed": false,
+      "description": "Long-term capital gains on listed equity, held more than 12 months. Flat rate, no indexation. The exemption applies once per financial year across all LTCG put together - not once per trade."
+    },
+    "section87ARebate": {
+      "applicable": false,
+      "note": "The Section 87A rebate does not apply to STCG under 111A or LTCG under 112A, even when total income is below the rebate threshold. This surprises most beginners - it is surfaced as a standing warning, not just a footnote."
+    },
+    "grandfathering": {
+      "cutoffDate": "2018-01-31",
+      "formula": "higher_of_actual_or_capped_fmv",
+      "description": "For shares acquired on or before 31 Jan 2018: cost of acquisition = higher of (actual cost) and (lower of (fair market value on 31 Jan 2018, actual sale price)). The sale-price cap stops a stale, higher FMV from manufacturing a loss that isn't real when the price has fallen since Jan 2018."
+    }
+  },
+
+  "businessIncome": {
+    "intraday": {
+      "classification": "speculative_business_income",
+      "schedule": "BP",
+      "taxedAtSlabRate": true,
+      "description": "Intraday equity is speculative business income, not a capital gain - taxed at your income slab rate, reported in Schedule BP, not Schedule CG."
+    },
+    "fno": {
+      "classification": "non_speculative_business_income",
+      "schedule": "BP",
+      "taxedAtSlabRate": true,
+      "description": "F&O is non-speculative business income, not a capital gain - taxed at your income slab rate, reported in Schedule BP, not Schedule CG."
+    },
+    "availableSlabRatesPercent": [0, 5, 10, 15, 20, 30]
+  },
+
+  "lossSetOff": {
+    "shortTermLossOffsetsAgainst": ["short_term", "long_term"],
+    "longTermLossOffsetsAgainst": ["long_term"],
+    "carryForwardYears": 8,
+    "carryForwardRequiresTimelyFiling": true,
+    "note": "Unabsorbed capital losses carry forward for 8 assessment years, but only if the return is filed by the original due date. Missing the due date forfeits the carry-forward entirely - this is the single most expensive avoidable mistake in this area."
+  },
+
+  "transactionCharges": {
+    "brokerage": {
+      "delivery": { "flatFeeRupees": 0, "percentOfTurnover": 0, "useLowerOf": false },
+      "intraday": { "flatFeeRupees": 20, "percentOfTurnover": 0.0003, "useLowerOf": true },
+      "fno": { "flatFeeRupees": 20, "percentOfTurnover": 0.0003, "useLowerOf": true },
+      "description": "Illustrative discount-broker figures - ₹20 or 0.03% of turnover per executed order, whichever is lower, for intraday/F&O; ₹0 for delivery. Not any specific broker's actual tariff."
+    },
+    "stt": {
+      "equityDeliveryBuyPercent": 0.001,
+      "equityDeliverySellPercent": 0.001,
+      "equityIntradaySellPercent": 0.00025,
+      "futuresSellPercent": 0.000125,
+      "optionsSellOnPremiumPercent": 0.000625
+    },
+    "exchangeTransactionChargePercent": {
+      "equity": 0.0000297,
+      "futures": 0.0000173,
+      "optionsOnPremium": 0.0003503
+    },
+    "sebiTurnoverFeePercent": 0.0000001,
+    "stampDutyPercent": {
+      "equityDeliveryBuy": 0.00015,
+      "equityIntradayBuy": 0.00003,
+      "futuresBuy": 0.00002,
+      "optionsBuyOnPremium": 0.00003
+    },
+    "gstRateOnBrokerageAndFees": 0.18,
+    "note": "STT/exchange-charge/SEBI-fee/stamp-duty figures are best-effort as of this rate set's effective date and are subject to CA review before launch, per the README disclaimer. F&O STT here reflects the pre-1-Oct-2024 rates (lower than 2024-07-23.json's, which already includes the October revision - the STT step happened partway through the period this file otherwise covers; treat the F&O figures in this file as approximate for trades between 23 Jul and 30 Sep 2024)."
+  }
+}

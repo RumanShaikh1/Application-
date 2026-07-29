@@ -1,0 +1,19 @@
+{
+  "id": "placement-leverage-spike-01",
+  "context": "An expanding real-estate company's latest filing shows debt-to-equity has tripled to 3x in a year, with interest coverage down to 1.4x, funding five simultaneous projects. The same week, headlines called the expansion 'transformational.'",
+  "block": {
+    "question": "Given only what you can see, is the risk here skewed to the downside, upside, or roughly balanced?",
+    "readOptions": [
+      { "id": "downside", "label": "Skewed to the downside", "correct": true },
+      { "id": "upside", "label": "Skewed to the upside", "correct": false },
+      { "id": "balanced", "label": "Roughly balanced", "correct": false }
+    ],
+    "factorQuestion": "Which of these support that read?",
+    "factorOptions": [
+      { "id": "debt_tripled", "label": "Debt-to-equity has tripled in a year", "correct": true },
+      { "id": "coverage_thin", "label": "Interest coverage has fallen to 1.4x, leaving little room for a bad quarter", "correct": true },
+      { "id": "transformational_headline", "label": "Analysts are calling it a transformational expansion", "correct": false },
+      { "id": "price_up_since", "label": "The stock price has risen since the expansion was announced", "correct": false }
+    ]
+  }
+}

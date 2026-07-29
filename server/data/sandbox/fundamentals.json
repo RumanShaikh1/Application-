@@ -1,0 +1,346 @@
+{
+  "asOfDate": "2026-07-26",
+  "note": "Fundamentals are real, live-fetched figures as of the date above - NOT point-in-time for the 2020 price window below. Sourcing genuine historical (as-of-Jan-2020) fundamentals for 20 companies is not reliably possible from a free data source, so this v1 fixture deliberately uses current real data rather than fabricate historical figures. This mismatch is intentional and disclosed, not hidden - see CLAUDE.md Sandbox invariants.",
+  "companies": [
+    {
+      "symbol": "RELIANCE.NS",
+      "name": "Reliance Industries Limited",
+      "sector": "Energy",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 23.193262,
+        "pbRatio": 1.9167871,
+        "roePercent": null,
+        "marketCapCr": 1732833.08,
+        "dividendYieldPercent": 0.47,
+        "debtToEquity": 0.367,
+        "beta": 0.184,
+        "fiftyTwoWeekLow": 1249.8,
+        "fiftyTwoWeekHigh": 1611.8
+      }
+    },
+    {
+      "symbol": "HDFCBANK.NS",
+      "name": "HDFC Bank Limited",
+      "sector": "Financial Services",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 16.599688,
+        "pbRatio": 1.887952,
+        "roePercent": 13.838000000000001,
+        "marketCapCr": 1145363.44,
+        "dividendYieldPercent": 1.75,
+        "debtToEquity": null,
+        "beta": 0.422,
+        "fiftyTwoWeekLow": 726.65,
+        "fiftyTwoWeekHigh": 1020.5
+      }
+    },
+    {
+      "symbol": "ICICIBANK.NS",
+      "name": "ICICI Bank Limited",
+      "sector": "Financial Services",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 18.557768,
+        "pbRatio": 2.707508,
+        "roePercent": 16.073999,
+        "marketCapCr": 1030082.58,
+        "dividendYieldPercent": 0.84,
+        "debtToEquity": null,
+        "beta": 0.235,
+        "fiftyTwoWeekLow": 1187.6,
+        "fiftyTwoWeekHigh": 1494.5
+      }
+    },
+    {
+      "symbol": "INFY.NS",
+      "name": "Infosys Limited",
+      "sector": "Technology",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 13.291544,
+        "pbRatio": 4.456356,
+        "roePercent": 32,
+        "marketCapCr": 420807.84,
+        "dividendYieldPercent": 4.8,
+        "debtToEquity": 0.095,
+        "beta": 0.131,
+        "fiftyTwoWeekLow": 982.4,
+        "fiftyTwoWeekHigh": 1728
+      }
+    },
+    {
+      "symbol": "TCS.NS",
+      "name": "Tata Consultancy Services Limited",
+      "sector": "Technology",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 16.336575,
+        "pbRatio": 7.4260592,
+        "roePercent": 47.743,
+        "marketCapCr": 814142.04,
+        "dividendYieldPercent": 2.88,
+        "debtToEquity": 0.102,
+        "beta": 0.241,
+        "fiftyTwoWeekLow": 1976.8,
+        "fiftyTwoWeekHigh": 3350
+      }
+    },
+    {
+      "symbol": "LT.NS",
+      "name": "Larsen & Toubro Limited",
+      "sector": "Industrials",
+      "styleLabel": "higher_risk",
+      "fundamentals": {
+        "peRatio": 32.38075,
+        "pbRatio": 4.7678328,
+        "roePercent": 16.951999,
+        "marketCapCr": 521112.44,
+        "dividendYieldPercent": 1,
+        "debtToEquity": 0.976,
+        "beta": 0.46,
+        "fiftyTwoWeekLow": 3288.1,
+        "fiftyTwoWeekHigh": 4440
+      }
+    },
+    {
+      "symbol": "BHARTIARTL.NS",
+      "name": "Bharti Airtel Limited",
+      "sector": "Communication Services",
+      "styleLabel": "higher_risk",
+      "fundamentals": {
+        "peRatio": 42.79604,
+        "pbRatio": 7.455779,
+        "roePercent": 19.358998999999997,
+        "marketCapCr": 1185968.92,
+        "dividendYieldPercent": 1.26,
+        "debtToEquity": 0.997,
+        "beta": 0.016,
+        "fiftyTwoWeekLow": 1740.5,
+        "fiftyTwoWeekHigh": 2174.5
+      }
+    },
+    {
+      "symbol": "ITC.NS",
+      "name": "ITC Limited",
+      "sector": "Consumer Defensive",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 17.212122,
+        "pbRatio": 4.907636,
+        "roePercent": 29.34,
+        "marketCapCr": 355836.91,
+        "dividendYieldPercent": 5.64,
+        "debtToEquity": 0.033,
+        "beta": -0.081,
+        "fiftyTwoWeekLow": 275,
+        "fiftyTwoWeekHigh": 427
+      }
+    },
+    {
+      "symbol": "SBIN.NS",
+      "name": "State Bank of India",
+      "sector": "Financial Services",
+      "styleLabel": "higher_risk",
+      "fundamentals": {
+        "peRatio": 11.102578,
+        "pbRatio": 1.5670025,
+        "roePercent": 15.476999999999999,
+        "marketCapCr": 934138.5,
+        "dividendYieldPercent": 1.71,
+        "debtToEquity": null,
+        "beta": 0.362,
+        "fiftyTwoWeekLow": 786.55,
+        "fiftyTwoWeekHigh": 1234.7
+      }
+    },
+    {
+      "symbol": "HINDUNILVR.NS",
+      "name": "Hindustan Unilever Limited",
+      "sector": "Consumer Defensive",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 47.425983,
+        "pbRatio": 10.34777,
+        "roePercent": 21.603,
+        "marketCapCr": 504339.79,
+        "dividendYieldPercent": 2.05,
+        "debtToEquity": 0.03,
+        "beta": 0.364,
+        "fiftyTwoWeekLow": 2022.5,
+        "fiftyTwoWeekHigh": 2750
+      }
+    },
+    {
+      "symbol": "KOTAKBANK.NS",
+      "name": "Kotak Mahindra Bank Limited",
+      "sector": "Financial Services",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 18.862188,
+        "pbRatio": 2.1108556,
+        "roePercent": null,
+        "marketCapCr": 382541.05,
+        "dividendYieldPercent": 0.17,
+        "debtToEquity": null,
+        "beta": 0.287,
+        "fiftyTwoWeekLow": 345.5,
+        "fiftyTwoWeekHigh": 453.2
+      }
+    },
+    {
+      "symbol": "AXISBANK.NS",
+      "name": "Axis Bank Limited",
+      "sector": "Financial Services",
+      "styleLabel": "higher_risk",
+      "fundamentals": {
+        "peRatio": 13.841998,
+        "pbRatio": 1.7141734,
+        "roePercent": 13.352998999999999,
+        "marketCapCr": 382663.24,
+        "dividendYieldPercent": 0.08,
+        "debtToEquity": null,
+        "beta": 0.422,
+        "fiftyTwoWeekLow": 1042.5,
+        "fiftyTwoWeekHigh": 1418.3
+      }
+    },
+    {
+      "symbol": "BAJFINANCE.NS",
+      "name": "Bajaj Finance Limited",
+      "sector": "Financial Services",
+      "styleLabel": "higher_growth",
+      "fundamentals": {
+        "peRatio": 33.420795,
+        "pbRatio": 5.557949,
+        "roePercent": 17.907,
+        "marketCapCr": 633601.63,
+        "dividendYieldPercent": 0.53,
+        "debtToEquity": 3.148,
+        "beta": 0.353,
+        "fiftyTwoWeekLow": 787.9,
+        "fiftyTwoWeekHigh": 1102.5
+      }
+    },
+    {
+      "symbol": "MARUTI.NS",
+      "name": "Maruti Suzuki India Limited",
+      "sector": "Consumer Cyclical",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 28.835434,
+        "pbRatio": 3.946287,
+        "roePercent": 14.434,
+        "marketCapCr": 422871.43,
+        "dividendYieldPercent": 1.04,
+        "debtToEquity": 0.001,
+        "beta": 0.265,
+        "fiftyTwoWeekLow": 12201,
+        "fiftyTwoWeekHigh": 17370
+      }
+    },
+    {
+      "symbol": "SUNPHARMA.NS",
+      "name": "Sun Pharmaceutical Industries Limited",
+      "sector": "Healthcare",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 40.689007,
+        "pbRatio": 5.5781574,
+        "roePercent": 14.719999999999999,
+        "marketCapCr": 466166.8,
+        "dividendYieldPercent": 0.82,
+        "debtToEquity": 0.055,
+        "beta": 0.076,
+        "fiftyTwoWeekLow": 1548,
+        "fiftyTwoWeekHigh": 1966.5
+      }
+    },
+    {
+      "symbol": "TITAN.NS",
+      "name": "Titan Company Limited",
+      "sector": "Consumer Cyclical",
+      "styleLabel": "higher_growth",
+      "fundamentals": {
+        "peRatio": 82.15913,
+        "pbRatio": 26.504593,
+        "roePercent": 37.127998,
+        "marketCapCr": 415846.81,
+        "dividendYieldPercent": 0.32,
+        "debtToEquity": 1.95,
+        "beta": 0.219,
+        "fiftyTwoWeekLow": 3303.1,
+        "fiftyTwoWeekHigh": 4733
+      }
+    },
+    {
+      "symbol": "NTPC.NS",
+      "name": "NTPC Limited",
+      "sector": "Utilities",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 10.629778,
+        "pbRatio": 1.6601096,
+        "roePercent": null,
+        "marketCapCr": 337153.1,
+        "dividendYieldPercent": 3.27,
+        "debtToEquity": 1.181,
+        "beta": 0.28,
+        "fiftyTwoWeekLow": 315.55,
+        "fiftyTwoWeekHigh": 414.4
+      }
+    },
+    {
+      "symbol": "M&M.NS",
+      "name": "Mahindra & Mahindra Limited",
+      "sector": "Consumer Cyclical",
+      "styleLabel": "higher_growth",
+      "fundamentals": {
+        "peRatio": 20.814152,
+        "pbRatio": 3.7994056,
+        "roePercent": 18.754,
+        "marketCapCr": 380041.25,
+        "dividendYieldPercent": 1.04,
+        "debtToEquity": 1.253,
+        "beta": 0.337,
+        "fiftyTwoWeekLow": 2896,
+        "fiftyTwoWeekHigh": 3839.9
+      }
+    },
+    {
+      "symbol": "ULTRACEMCO.NS",
+      "name": "UltraTech Cement Limited",
+      "sector": "Basic Materials",
+      "styleLabel": "higher_risk",
+      "fundamentals": {
+        "peRatio": 40.79523,
+        "pbRatio": 4.8348455,
+        "roePercent": null,
+        "marketCapCr": 348296.84,
+        "dividendYieldPercent": 2.03,
+        "debtToEquity": 0.294,
+        "beta": 0.453,
+        "fiftyTwoWeekLow": 10325,
+        "fiftyTwoWeekHigh": 13110
+      }
+    },
+    {
+      "symbol": "ASIANPAINT.NS",
+      "name": "Asian Paints Limited",
+      "sector": "Basic Materials",
+      "styleLabel": "large_stable",
+      "fundamentals": {
+        "peRatio": 58.512524,
+        "pbRatio": 11.846576,
+        "roePercent": 20.889999,
+        "marketCapCr": 253034.16,
+        "dividendYieldPercent": 1.04,
+        "debtToEquity": 0.178,
+        "beta": 0.304,
+        "fiftyTwoWeekLow": 2115,
+        "fiftyTwoWeekHigh": 2985.7
+      }
+    }
+  ]
+}

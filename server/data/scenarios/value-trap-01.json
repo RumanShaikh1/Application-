@@ -1,0 +1,136 @@
+{
+  "id": "value-trap-01",
+  "title": "It Looks Historically Cheap",
+  "difficulty": "intermediate",
+  "conceptTags": ["value trap", "valuation", "structural decline"],
+  "companyContext": "A newspaper and print-media company whose shares look remarkably cheap on the usual measures. You don't own it yet.",
+  "priceSeed": [
+    { "day": 0, "open": 182, "high": 184, "low": 179, "close": 180 },
+    { "day": 1, "open": 180, "high": 181, "low": 173, "close": 175 },
+    { "day": 2, "open": 175, "high": 176, "low": 168, "close": 170 },
+    { "day": 3, "open": 170, "high": 171, "low": 164, "close": 166 },
+    { "day": 4, "open": 166, "high": 167, "low": 160, "close": 162 },
+    { "day": 5, "open": 162, "high": 163, "low": 156, "close": 158 },
+    { "day": 6, "open": 158, "high": 159, "low": 153, "close": 155 }
+  ],
+  "stages": [
+    {
+      "index": 0,
+      "kind": "fundamentals",
+      "fundamentals": {
+        "P/E ratio": "4.2 (5-year average: 14)",
+        "Dividend yield": "9.8%",
+        "Revenue (YoY)": "-11%, sixth consecutive quarter of decline",
+        "Print circulation": "Down 34% over 3 years"
+      },
+      "note": "A P/E of 4.2 versus its own 5-year average of 14 means it's trading much cheaper than it usually has. A dividend yield of 9.8% means the yearly dividend equals nearly a tenth of what you'd pay for the share - unusually high. Revenue down 11% for a sixth straight quarter, alongside circulation down 34% in three years, means fewer people are buying the paper each year and sales keep shrinking. The low P/E and high yield are exactly what make this look like a bargain at first glance."
+    },
+    {
+      "index": 1,
+      "kind": "headline",
+      "headline": "\"Stock trades at multi-year-low valuation - some analysts call it deeply undervalued\"",
+      "note": "This ran alongside the numbers above."
+    },
+    {
+      "index": 2,
+      "kind": "price",
+      "priceThroughDay": 14,
+      "priceExtension": [
+        { "day": 7, "open": 155, "high": 156, "low": 150, "close": 152 },
+        { "day": 8, "open": 152, "high": 153, "low": 147, "close": 149 },
+        { "day": 9, "open": 149, "high": 150, "low": 145, "close": 147 },
+        { "day": 10, "open": 147, "high": 148, "low": 143, "close": 145 },
+        { "day": 11, "open": 145, "high": 146, "low": 141, "close": 143 },
+        { "day": 12, "open": 143, "high": 144, "low": 140, "close": 142 },
+        { "day": 13, "open": 142, "high": 143, "low": 139, "close": 141 },
+        { "day": 14, "open": 141, "high": 142, "low": 138, "close": 140 }
+      ],
+      "note": "The price has kept drifting lower."
+    }
+  ],
+  "choices": [
+    { "id": "buy", "label": "Buy", "description": "It's cheap on every measure - buy it." },
+    { "id": "wait_for_confirmation", "label": "Wait for more information", "description": "Wait until sales stop falling." },
+    { "id": "avoid", "label": "Avoid", "description": "Don't buy this one." }
+  ],
+  "rubric": {
+    "soundChoiceIds": ["avoid"],
+    "acceptableChoiceIds": ["wait_for_confirmation"],
+    "criteria": [
+      {
+        "id": "distinguishes_cheap_from_value",
+        "description": "Distinguishes a low P/E and high yield caused by structural business decline from genuine undervaluation.",
+        "weight": 40,
+        "factorOptionIds": ["cheap_vs_value"],
+        "matchConcepts": [
+          ["low p/e", "cheap", "high yield", "high dividend", "looks cheap", "attractive valuation"],
+          ["value trap", "not actually cheap", "structural decline", "declining business", "cheap for a reason", "not genuine value", "isn't undervalued", "trap"]
+        ],
+        "minConceptsRequired": 2
+      },
+      {
+        "id": "reads_revenue_trend",
+        "description": "Weighs the six consecutive quarters of revenue decline and shrinking circulation, not just the valuation ratios.",
+        "weight": 35,
+        "factorOptionIds": ["revenue_trend"],
+        "matchConcepts": [
+          ["revenue declin", "quarters of decline", "shrinking revenue", "falling revenue", "circulation", "sales declin", "revenue trend", "consecutive quarter", "declining revenue"],
+          ["not just the ratio", "more than the valuation", "beyond the p/e", "look past the multiple", "aside from valuation", "not only the yield"]
+        ],
+        "minConceptsRequired": 1
+      },
+      {
+        "id": "questions_dividend_sustainability",
+        "description": "Questions whether a high dividend yield on a shrinking, cash-strained business is sustainable, rather than treating it as pure upside.",
+        "weight": 25,
+        "factorOptionIds": ["dividend_sustainability"],
+        "matchConcepts": [
+          ["dividend", "yield", "payout"],
+          ["sustainab", "cut", "can't maintain", "won't last", "not sustainable", "at risk of being cut", "cash strain", "afford the dividend"]
+        ],
+        "minConceptsRequired": 2
+      }
+    ],
+    "factorOptions": [
+      { "id": "cheap_vs_value", "label": "The low P/E and high yield reflect a structurally declining business, not a genuine bargain", "correct": true },
+      { "id": "revenue_trend", "label": "Revenue has fallen for six straight quarters and circulation is shrinking", "correct": true },
+      { "id": "dividend_sustainability", "label": "A dividend this high on a shrinking, cash-strained business may not be sustainable", "correct": true },
+      { "id": "multi_year_low", "label": "The stock is trading at a multi-year-low valuation", "correct": false },
+      { "id": "analysts_undervalued", "label": "Some analysts have called it deeply undervalued", "correct": false }
+    ],
+    "idealSummary": "A low P/E and a fat dividend yield can mean a stock is a bargain - or that the market has correctly priced a business in steady decline, and that dividend won't survive many more quarters. Six straight quarters of falling sales and a third of readership gone in three years aren't problems a cheap price fixes. This is the market pricing in more of the same, not an opportunity it somehow missed - that trap, cheap for a reason, is one of the most common ways beginners lose money 'buying value'."
+  },
+  "outcome": {
+    "summary": "Sales kept falling and the company cut its dividend the next quarter, removing the main reason bulls owned it. The stock slid well past the point where it already looked 'cheap'.",
+    "priceSeries": [
+      { "day": 0, "open": 182, "high": 184, "low": 179, "close": 180 },
+      { "day": 1, "open": 180, "high": 181, "low": 173, "close": 175 },
+      { "day": 2, "open": 175, "high": 176, "low": 168, "close": 170 },
+      { "day": 3, "open": 170, "high": 171, "low": 164, "close": 166 },
+      { "day": 4, "open": 166, "high": 167, "low": 160, "close": 162 },
+      { "day": 5, "open": 162, "high": 163, "low": 156, "close": 158 },
+      { "day": 6, "open": 158, "high": 159, "low": 153, "close": 155 },
+      { "day": 7, "open": 155, "high": 156, "low": 150, "close": 152 },
+      { "day": 8, "open": 152, "high": 153, "low": 147, "close": 149 },
+      { "day": 9, "open": 149, "high": 150, "low": 145, "close": 147 },
+      { "day": 10, "open": 147, "high": 148, "low": 143, "close": 145 },
+      { "day": 11, "open": 145, "high": 146, "low": 141, "close": 143 },
+      { "day": 12, "open": 143, "high": 144, "low": 140, "close": 142 },
+      { "day": 13, "open": 142, "high": 143, "low": 139, "close": 141 },
+      { "day": 14, "open": 141, "high": 142, "low": 138, "close": 140 },
+      { "day": 15, "open": 140, "high": 141, "low": 133, "close": 135 },
+      { "day": 16, "open": 135, "high": 136, "low": 126, "close": 128 },
+      { "day": 17, "open": 128, "high": 129, "low": 116, "close": 118 },
+      { "day": 18, "open": 118, "high": 119, "low": 106, "close": 108 },
+      { "day": 19, "open": 108, "high": 109, "low": 96, "close": 98 },
+      { "day": 20, "open": 98, "high": 99, "low": 88, "close": 90 },
+      { "day": 21, "open": 90, "high": 91, "low": 81, "close": 83 },
+      { "day": 22, "open": 83, "high": 84, "low": 75, "close": 77 },
+      { "day": 23, "open": 77, "high": 78, "low": 70, "close": 72 },
+      { "day": 24, "open": 72, "high": 73, "low": 66, "close": 68 }
+    ],
+    "grossReturnPercent": -51.4,
+    "outcomeCategory": "decline"
+  },
+  "survivorshipNote": "A structurally declining business whose valuation ratios looked attractive throughout the decline - included so the dataset captures a value trap distinctly from an outright blow-up or fraud."
+}
