@@ -5,7 +5,7 @@ import SandboxStockModal from './SandboxStockModal'
 import { api } from '../lib/api'
 import { POPULAR_STOCKS } from '../lib/popularStocks'
 import { THESIS_CHOICES } from '../lib/thesisChoices'
-import { formatPercent, formatPrice } from '../lib/formatStats'
+import { formatPercent, formatPrice, yearOf } from '../lib/formatStats'
 import type { SandboxCompany, SandboxDayPriceQuote, SandboxStyleLabel, ThesisTag, TradeSide } from '@shared/types'
 
 interface SandboxTradeTicketProps {
@@ -44,6 +44,7 @@ function initialsFor(company: SandboxCompany): string {
 export default function SandboxTradeTicket({ dayCursor, onSubmit, submitting, submitError }: SandboxTradeTicketProps) {
   const [companies, setCompanies] = useState<SandboxCompany[]>([])
   const [quotesBySymbol, setQuotesBySymbol] = useState<Record<string, SandboxDayPriceQuote>>({})
+  const [fundamentalsAsOfDate, setFundamentalsAsOfDate] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [infoSymbol, setInfoSymbol] = useState<string | null>(null)
@@ -63,6 +64,7 @@ export default function SandboxTradeTicket({ dayCursor, onSubmit, submitting, su
       .then(([snapshot, prices]) => {
         if (cancelled) return
         setCompanies(snapshot.companies)
+        setFundamentalsAsOfDate(snapshot.asOfDate)
         setQuotesBySymbol(Object.fromEntries(prices.quotes.map((quote) => [quote.symbol.toUpperCase(), quote])))
         setLoading(false)
       })
@@ -118,6 +120,21 @@ export default function SandboxTradeTicket({ dayCursor, onSubmit, submitting, su
           Prices are real closes from this window's day {dayCursor}. Tap a company to trade it, or the <Info size={12} className="inline" aria-hidden="true" /> for
           its full picture first.
         </p>
+
+        {(() => {
+          const fundamentalsYear = yearOf(fundamentalsAsOfDate)
+          const priceYear = yearOf(Object.values(quotesBySymbol)[0]?.date)
+          if (!fundamentalsYear || !priceYear || fundamentalsYear === priceYear) return null
+          return (
+            <div className="mb-3 flex items-start gap-2 rounded-xl border border-cobalt/25 bg-cobalt/8 p-3 text-xs leading-relaxed text-ink/70">
+              <Info size={14} className="mt-0.5 shrink-0 text-cobalt" aria-hidden="true" />
+              <p>
+                Fundamentals shown are recent (as of {fundamentalsYear}); prices replay {priceYear}. For learning the mechanics only - they are not from the
+                same period.
+              </p>
+            </div>
+          )
+        })()}
 
         {loadError ? (
           <p className="text-sm text-vermilion" role="alert">

@@ -874,9 +874,22 @@ export interface SandboxCompany {
   fundamentals: SandboxFundamentals
 }
 
-/** The whole fixture is snapshot-dated once, not per-company - see fundamentals.json's own `note` field for why this date deliberately does not match the price window below (real point-in-time historical fundamentals for 20 companies aren't reliably sourceable for free - using current real data, clearly dated, beats fabricating historical figures). */
+/**
+ * The whole fixture is snapshot-dated once, not per-company - see
+ * fundamentals.json's own `note` field for why this date deliberately does
+ * not match the price window below (real point-in-time historical
+ * fundamentals for 20 companies aren't reliably sourceable for free - using
+ * current real data, clearly dated, beats fabricating historical figures).
+ *
+ * `windowId` is the explicit binding to whichever PriceWindow this
+ * fundamentals snapshot is meant to accompany - it must equal that window's
+ * `id`. loadSandboxData.ts asserts this at startup and throws if it doesn't
+ * match, specifically so a second window can never be added later with a
+ * silently-mismatched (or silently-reused) fundamentals fixture.
+ */
 export interface SandboxFundamentalsSnapshot {
   asOfDate: string
+  windowId: string
   note: string
   companies: SandboxCompany[]
 }
@@ -1051,11 +1064,12 @@ export interface StockAnalysis {
   checkpoints: StockAnalysisCheckpoint[]
 }
 
-/** Everything the stock detail modal needs in one call. `priceSeries` is always the real, full window (prices.json covers all 20 symbols) - `analysis` is null, honestly, only for the companies whose qualitative write-up hasn't been authored yet. See server/src/sandbox/loadSandboxData.ts. */
+/** Everything the stock detail modal needs in one call. `priceSeries` is always the real, full window (prices.json covers all 20 symbols) - `analysis` is null, honestly, only for the companies whose qualitative write-up hasn't been authored yet. `fundamentalsAsOfDate` mirrors SandboxFundamentalsSnapshot.asOfDate - included here so the modal can disclose the fundamentals/price-window period mismatch without a second fetch. See server/src/sandbox/loadSandboxData.ts. */
 export interface SandboxCompanyDetail {
   company: SandboxCompany
   analysis: StockAnalysis | null
   priceSeries: SandboxDailyClose[]
+  fundamentalsAsOfDate: string
 }
 
 /** One symbol's close as of a given replay day, for the trade picker grid - one batched call for all 20 rather than 20 individual detail fetches. */

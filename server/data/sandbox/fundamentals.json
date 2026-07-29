@@ -1,6 +1,7 @@
 {
   "asOfDate": "2026-07-26",
-  "note": "Fundamentals are real, live-fetched figures as of the date above - NOT point-in-time for the 2020 price window below. Sourcing genuine historical (as-of-Jan-2020) fundamentals for 20 companies is not reliably possible from a free data source, so this v1 fixture deliberately uses current real data rather than fabricate historical figures. This mismatch is intentional and disclosed, not hidden - see CLAUDE.md Sandbox invariants.",
+  "windowId": "covid-crash-recovery-2020",
+  "note": "Fundamentals are real, live-fetched figures as of the date above - NOT point-in-time for the 2020 price window (windowId: covid-crash-recovery-2020) they're served alongside. Sourcing genuine historical (as-of-Jan-2020) fundamentals for 20 companies was attempted for this pass and not completed - see server/data/sandbox/FUNDAMENTALS_SOURCES.md for what was tried, why it fell short, and exactly what would replace this. This mismatch is intentional and disclosed both here AND at the point of use in the app itself (the sandbox trade ticket and the stock detail modal both show it directly to the user) - see CLAUDE.md Sandbox invariants. windowId is asserted against the served PriceWindow's id at server startup (loadSandboxData.ts) so this binding can never silently drift.",
   "companies": [
     {
       "symbol": "RELIANCE.NS",

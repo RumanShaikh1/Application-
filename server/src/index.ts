@@ -581,7 +581,7 @@ app.get('/api/sandbox/companies/:symbol', (req, res) => {
   // prices.json already covers the whole basket.
   const analysis = findStockAnalysis(company.symbol) ?? null
   const priceSeries = getSandboxPriceWindow().seriesBySymbol[company.symbol] ?? []
-  const response: SandboxCompanyDetail = { company, analysis, priceSeries }
+  const response: SandboxCompanyDetail = { company, analysis, priceSeries, fundamentalsAsOfDate: getSandboxFundamentals().asOfDate }
   res.json(response)
 })
 

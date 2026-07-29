@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { CheckCircle2, Info, XCircle } from 'lucide-react'
 import Modal from './Modal'
 import SandboxPriceChart from './SandboxPriceChart'
 import StatusState, { type ViewState } from './StatusState'
 import { api } from '../lib/api'
-import { formatPrice } from '../lib/formatStats'
+import { yearOf } from '../lib/formatStats'
+import {
+  formatBeta,
+  formatDebtToEquity,
+  formatDividendYield,
+  formatFiftyTwoWeekRange,
+  formatMarketCap,
+  formatPbRatio,
+  formatPeRatio,
+  formatRoe,
+  type FormattedStat
+} from '../lib/formatSandboxStat'
 import type { SandboxCompanyDetail, SandboxFundamentals } from '@shared/types'
 
 interface SandboxStockModalProps {
@@ -15,18 +26,18 @@ interface SandboxStockModalProps {
 interface StatDefinition {
   key: keyof SandboxFundamentals
   label: string
-  format: (fundamentals: SandboxFundamentals) => string
+  format: (fundamentals: SandboxFundamentals, sector: string) => FormattedStat
 }
 
 const STAT_DEFINITIONS: StatDefinition[] = [
-  { key: 'peRatio', label: 'P/E ratio', format: (f) => (f.peRatio != null ? f.peRatio.toFixed(1) : 'Not available') },
-  { key: 'pbRatio', label: 'P/B ratio', format: (f) => (f.pbRatio != null ? f.pbRatio.toFixed(1) : 'Not available') },
-  { key: 'roePercent', label: 'Return on equity', format: (f) => (f.roePercent != null ? `${f.roePercent.toFixed(1)}%` : 'Not published') },
-  { key: 'marketCapCr', label: 'Market cap', format: (f) => `₹${f.marketCapCr.toLocaleString('en-IN', { maximumFractionDigits: 0 })} cr` },
-  { key: 'dividendYieldPercent', label: 'Dividend yield', format: (f) => (f.dividendYieldPercent != null ? `${f.dividendYieldPercent.toFixed(2)}%` : 'Not available') },
-  { key: 'debtToEquity', label: 'Debt-to-equity', format: (f) => (f.debtToEquity != null ? f.debtToEquity.toFixed(2) : 'Not available') },
-  { key: 'beta', label: 'Beta', format: (f) => (f.beta != null ? f.beta.toFixed(2) : 'Not available') },
-  { key: 'fiftyTwoWeekLow', label: '52-week range', format: (f) => `${formatPrice(f.fiftyTwoWeekLow)} - ${formatPrice(f.fiftyTwoWeekHigh)}` }
+  { key: 'peRatio', label: 'P/E ratio', format: formatPeRatio },
+  { key: 'pbRatio', label: 'P/B ratio', format: formatPbRatio },
+  { key: 'roePercent', label: 'Return on equity', format: formatRoe },
+  { key: 'marketCapCr', label: 'Market cap', format: formatMarketCap },
+  { key: 'dividendYieldPercent', label: 'Dividend yield', format: formatDividendYield },
+  { key: 'debtToEquity', label: 'Debt-to-equity', format: formatDebtToEquity },
+  { key: 'beta', label: 'Beta', format: formatBeta },
+  { key: 'fiftyTwoWeekLow', label: '52-week range', format: formatFiftyTwoWeekRange }
 ]
 
 /**
@@ -70,6 +81,21 @@ export default function SandboxStockModal({ symbol, onClose }: SandboxStockModal
             <div className="space-y-4">
               <p className="text-sm text-ink/55">{detail.company.sector}</p>
 
+              {(() => {
+                const fundamentalsYear = yearOf(detail.fundamentalsAsOfDate)
+                const priceYear = yearOf(detail.priceSeries[0]?.date)
+                if (!fundamentalsYear || !priceYear || fundamentalsYear === priceYear) return null
+                return (
+                  <div className="flex items-start gap-2 rounded-xl border border-cobalt/25 bg-cobalt/8 p-3 text-xs leading-relaxed text-ink/70">
+                    <Info size={14} className="mt-0.5 shrink-0 text-cobalt" aria-hidden="true" />
+                    <p>
+                      Fundamentals shown are recent (as of {fundamentalsYear}); prices replay {priceYear}. For learning the mechanics only - they are not
+                      from the same period.
+                    </p>
+                  </div>
+                )
+              })()}
+
               <section>
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-ink">Price - real 2020 window</h3>
@@ -81,12 +107,23 @@ export default function SandboxStockModal({ symbol, onClose }: SandboxStockModal
               <section>
                 <h3 className="mb-2 text-sm font-semibold text-ink">Statistics</h3>
                 <dl className="grid grid-cols-2 gap-2.5">
-                  {STAT_DEFINITIONS.map((stat) => (
-                    <div key={stat.key} className="rounded-xl bg-ink/[0.03] p-2.5">
-                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink/45">{stat.label}</dt>
-                      <dd className="mt-0.5 font-display text-base font-semibold tabular-nums text-ink">{stat.format(detail.company.fundamentals)}</dd>
-                    </div>
-                  ))}
+                  {STAT_DEFINITIONS.map((stat) => {
+                    const result = stat.format(detail.company.fundamentals, detail.company.sector)
+                    return (
+                      <div key={stat.key} className="rounded-xl bg-ink/[0.03] p-2.5">
+                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink/45">{stat.label}</dt>
+                        <dd
+                          className={
+                            result.available
+                              ? 'mt-0.5 font-display text-base font-semibold tabular-nums text-ink'
+                              : 'mt-0.5 text-xs italic leading-snug text-ink/45'
+                          }
+                        >
+                          {result.value}
+                        </dd>
+                      </div>
+                    )
+                  })}
                 </dl>
               </section>
 

@@ -14,7 +14,7 @@ const ANALYSIS_DIR = join(SANDBOX_DIR, 'analysis')
 // deliberately NOT every symbol needs one yet (see findStockAnalysis).
 
 const fundamentalsSnapshot: SandboxFundamentalsSnapshot = JSON.parse(readFileSync(join(SANDBOX_DIR, 'fundamentals.json'), 'utf-8'))
-if (!fundamentalsSnapshot.asOfDate || !fundamentalsSnapshot.companies?.length) {
+if (!fundamentalsSnapshot.asOfDate || !fundamentalsSnapshot.windowId || !fundamentalsSnapshot.companies?.length) {
   throw new Error('server/data/sandbox/fundamentals.json is missing required fields.')
 }
 
@@ -22,6 +22,24 @@ const priceWindow: PriceWindow = JSON.parse(readFileSync(join(SANDBOX_DIR, 'pric
 if (!priceWindow.id || !priceWindow.seriesBySymbol) {
   throw new Error('server/data/sandbox/prices.json is missing required fields.')
 }
+
+/**
+ * The explicit binding CLAUDE.md's Sandbox invariants require between which
+ * fundamentals accompany which price window (see SandboxFundamentalsSnapshot
+ * in shared/types.ts) - a pure function so it's directly testable with
+ * synthetic fixtures, rather than only exercisable by swapping real files on
+ * disk. Throws loudly rather than warning, matching the required-field
+ * checks above: a mismatched sandbox must never be served at all.
+ */
+export function assertFundamentalsMatchPriceWindow(fundamentals: SandboxFundamentalsSnapshot, window: PriceWindow): void {
+  if (fundamentals.windowId !== window.id) {
+    throw new Error(
+      `server/data/sandbox/fundamentals.json's windowId ("${fundamentals.windowId}") does not match the served price window's id ("${window.id}"). These two fixtures must be explicitly bound - see SandboxFundamentalsSnapshot.windowId in shared/types.ts.`
+    )
+  }
+}
+
+assertFundamentalsMatchPriceWindow(fundamentalsSnapshot, priceWindow)
 
 function readAnalysisFile(fileName: string): StockAnalysis {
   const raw = readFileSync(join(ANALYSIS_DIR, fileName), 'utf-8')
