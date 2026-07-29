@@ -12,6 +12,7 @@ mobile/     Expo/React Native app - Decision Replay, same core loop, native iOS/
 shared/     TypeScript types used by all client workspaces
 launcher/   standalone MarketPane.exe-style desktop app (WinForms/PowerShell) that links a browser and starts the server
             (launcher/MarketPane.Desktop/ is an unused, built-but-not-runnable alternative - see Notes below)
+            launcher/mac/ is the macOS equivalent (a MarketPane.app bundle) - see "Running on macOS" below
 ```
 
 ## Everyday use (after one-time setup below)
@@ -70,6 +71,23 @@ From here on, just double-click the Desktop icon (see "Everyday use" above).
 `cd server && npm run dev` in one terminal (verify with `curl http://localhost:8787/health`), then open Chrome/Edge yourself - the extension loaded in step 3 above works regardless of how the browser was opened.
 
 **During development:** `npm run watch` inside `extension/` rebuilds on file changes - reload the extension at `chrome://extensions` (the circular arrow icon on the card) to pick up changes, then refresh the page you're testing on.
+
+## Running on macOS
+
+`server/`, `web/`, `mobile/`, and `extension/` are all plain Node/Vite/Expo workspaces with nothing Windows-specific in them - they run on macOS exactly as described above (`npm install`, `npm run dev`/`npm run build`, load the extension unpacked at `chrome://extensions`). `launcher/MarketPane.ps1` and `launcher/MarketPane.Desktop/` do not - both depend on Windows-only APIs (WinForms, the registry, WebView2).
+
+`launcher/mac/MarketPane.app` is a from-scratch macOS port of `MarketPane.ps1`, function-for-function: first run prompts you to link a browser (Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc - detected via Spotlight's `mdfind` rather than the Windows registry, so it finds a browser regardless of where it's installed), then every run starts `server/` and `web/` if they aren't already running and opens the linked browser to the Simulator in app mode (`--app=<url>` for Chromium browsers; a normal window for Firefox, which has no app-mode flag). Config lives in `~/Library/Application Support/MarketPane/`, and start/stop logs land in `~/Library/Application Support/MarketPane/logs/`.
+
+> **⚠️ Built and syntax-checked (`bash -n`) on a non-Mac machine - not run end to end on real macOS.** The pure logic (health checks, config save/load, browser-list parsing, message formatting) was tested directly; the macOS-specific pieces (`mdfind`, `osascript` dialogs, `open`, `PlistBuddy`, LaunchServices actually double-clicking the `.app`) could not be. If something in `launcher/mac/MarketPane.app/Contents/MacOS/MarketPane` does not work as described, that is expected until someone runs it on a real Mac and reports back - the manual `npm run dev` path above always works as a fallback regardless.
+
+**One-time setup**, after the `npm install`/extension-build steps above:
+
+```
+chmod +x launcher/mac/MarketPane.app/Contents/MacOS/MarketPane launcher/mac/create-shortcut.sh
+launcher/mac/create-shortcut.sh
+```
+
+This symlinks `MarketPane.app` onto the Desktop (re-run only if you move the repo - editing the launcher script itself needs no re-run, since the symlink always points at the live file). From there, double-click the Desktop icon the same way as the Windows "Everyday use" section above.
 
 ## Decision Replay (`web/`)
 

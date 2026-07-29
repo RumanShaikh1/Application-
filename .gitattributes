@@ -1,0 +1,7 @@
+# Shell scripts, and the extensionless macOS launcher executable, must
+# always be stored with LF line endings - a CRLF shebang line
+# ("#!/bin/bash\r") fails to execute at all on macOS/Linux ("bad
+# interpreter" errors), regardless of the checking-out machine's
+# core.autocrlf setting.
+*.sh text eol=lf
+launcher/mac/MarketPane.app/Contents/MacOS/MarketPane text eol=lf

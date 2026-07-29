@@ -1,0 +1,357 @@
+#!/bin/bash
+# MarketPane launcher (macOS) - ported function-by-function from
+# launcher/MarketPane.ps1 (Windows): first run prompts you to link a
+# browser, then every run starts the local server + web app if needed and
+# opens your linked browser to the Simulator in app mode. Every failure
+# shows a real dialog - nothing fails silently, same principle as the
+# Windows original's Show-ErrorBox.
+#
+# NOTE ON VERIFICATION: authored and syntax-checked (bash -n) on a non-Mac
+# machine - there is no Mac available to actually run the double-click /
+# AppleScript-dialog / browser-launch flow end to end. Treat this as a
+# best-effort, carefully-reasoned port, not a verified-working build. See
+# README.md's "Running on macOS" section, and please report back what (if
+# anything) needs fixing after a real run.
+#
+# AppleScript dialogs are generated into temp files and run via
+# `osascript <file>` rather than `osascript -e "..."` - inline -e strings
+# need bash and AppleScript quoting to nest correctly at the same time,
+# which is fragile; a heredoc-written temp file lets bash variables
+# interpolate as plain text with no nested-quote escaping at all.
+#
+# Message strings are always built with `printf -v` (never plain "...\n..."
+# double-quoted literals) - bash does not interpret \n inside a normal
+# double-quoted string, so a literal "\n" would show up as two visible
+# characters in the dialog instead of a line break. printf does interpret
+# it, and %s handles variable interpolation at the same time.
+
+set -u
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+SERVER_DIR="$ROOT/server"
+WEB_DIR="$ROOT/web"
+TSX_BIN="$SERVER_DIR/node_modules/.bin/tsx"
+VITE_BIN="$WEB_DIR/node_modules/.bin/vite"
+HEALTH_URL="http://localhost:8787/health"
+WEB_URL="http://localhost:5173"
+SIMULATOR_URL="http://localhost:5173/simulator"
+
+# ~/Library/Application Support is the standard per-user config location on
+# macOS - the direct analogue of the Windows launcher's %APPDATA%\MarketPane.
+# Config is a small sourceable shell file, not JSON: bash has no built-in
+# JSON parser, and depending on jq (not preinstalled on macOS) or python3
+# (prompts an Xcode Command Line Tools install if missing) for a two-field
+# config is not worth the fragility. This file is only ever written by
+# save_browser_config below, never from untrusted input.
+CONFIG_DIR="$HOME/Library/Application Support/MarketPane"
+CONFIG_PATH="$CONFIG_DIR/config.sh"
+LOG_DIR="$CONFIG_DIR/logs"
+SERVER_LOG="$LOG_DIR/server.log"
+WEB_LOG="$LOG_DIR/web.log"
+
+mkdir -p "$LOG_DIR"
+
+run_applescript_file() {
+  osascript "$1" 2>/dev/null
+}
+
+show_error() {
+  local message="$1"
+  local script
+  script="$(mktemp /tmp/marketpane-dialog.XXXXXX.applescript)"
+  cat >"$script" <<EOF
+display dialog "$message" with title "MarketPane" buttons {"OK"} default button "OK" with icon stop
+EOF
+  run_applescript_file "$script" >/dev/null
+  rm -f "$script"
+}
+
+# --- browser detection -----------------------------------------------------
+
+# mdfind (Spotlight) resolves an app bundle by identifier regardless of
+# *where* it's installed (/Applications, ~/Applications, anywhere indexed) -
+# the macOS analogue of the Windows launcher's "App Paths" registry lookup,
+# which finds a browser "regardless of where it happens to be installed, not
+# just the handful of default Program Files locations a fixed path list can
+# guess" (same comment, same reasoning, different OS mechanism). Falls back
+# to the conventional /Applications path if Spotlight indexing is off.
+find_app_bundle() {
+  local bundle_id="$1"
+  local fallback_path="$2"
+  local found
+  found="$(mdfind "kMDItemCFBundleIdentifier == '$bundle_id'" 2>/dev/null | head -n 1)"
+  if [ -n "$found" ] && [ -d "$found" ]; then
+    printf '%s' "$found"
+    return 0
+  fi
+  if [ -d "$fallback_path" ]; then
+    printf '%s' "$fallback_path"
+    return 0
+  fi
+  return 1
+}
+
+# Emits "Display Name|/path/to/Browser.app|is_chromium" per detected
+# browser, one per line - display-preference order matches the Windows
+# launcher's Get-InstalledBrowsers list.
+detect_browsers() {
+  local path
+  path="$(find_app_bundle "com.google.Chrome" "/Applications/Google Chrome.app")" && printf 'Google Chrome|%s|1\n' "$path"
+  path="$(find_app_bundle "com.microsoft.edgemac" "/Applications/Microsoft Edge.app")" && printf 'Microsoft Edge|%s|1\n' "$path"
+  path="$(find_app_bundle "org.mozilla.firefox" "/Applications/Firefox.app")" && printf 'Mozilla Firefox|%s|0\n' "$path"
+  path="$(find_app_bundle "com.brave.Browser" "/Applications/Brave Browser.app")" && printf 'Brave|%s|1\n' "$path"
+  path="$(find_app_bundle "com.operasoftware.Opera" "/Applications/Opera.app")" && printf 'Opera|%s|1\n' "$path"
+  path="$(find_app_bundle "com.vivaldi.Vivaldi" "/Applications/Vivaldi.app")" && printf 'Vivaldi|%s|1\n' "$path"
+  path="$(find_app_bundle "company.thebrowser.Browser" "/Applications/Arc.app")" && printf 'Arc|%s|1\n' "$path"
+  return 0
+}
+
+save_browser_config() {
+  local name="$1"
+  local path="$2"
+  local is_chromium="$3"
+  mkdir -p "$CONFIG_DIR"
+  {
+    printf 'BROWSER_NAME=%q\n' "$name"
+    printf 'BROWSER_PATH=%q\n' "$path"
+    printf 'BROWSER_IS_CHROMIUM=%q\n' "$is_chromium"
+  } >"$CONFIG_PATH"
+}
+
+load_browser_config() {
+  BROWSER_NAME=""
+  BROWSER_PATH=""
+  BROWSER_IS_CHROMIUM="0"
+  if [ -f "$CONFIG_PATH" ]; then
+    # shellcheck disable=SC1090
+    source "$CONFIG_PATH"
+  fi
+}
+
+# Native "choose from list" picker - the AppleScript analogue of the
+# Windows launcher's radio-button form. Returns 0 and writes config on a
+# valid pick, 1 if the user cancelled or nothing was detected.
+pick_browser() {
+  local browsers_raw
+  browsers_raw="$(detect_browsers)"
+
+  if [ -z "$browsers_raw" ]; then
+    show_error 'No supported browser (Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc) was found on this Mac.\n\nInstall one, then reopen MarketPane.'
+    return 1
+  fi
+
+  local names=()
+  while IFS='|' read -r name path is_chromium; do
+    [ -z "$name" ] && continue
+    names+=("$name")
+  done <<<"$browsers_raw"
+
+  local applescript_items=""
+  local n
+  for n in "${names[@]}"; do
+    applescript_items="${applescript_items}\"${n}\", "
+  done
+  applescript_items="{${applescript_items%, }}"
+
+  local script
+  script="$(mktemp /tmp/marketpane-picker.XXXXXX.applescript)"
+  cat >"$script" <<EOF
+set browserList to $applescript_items
+set chosen to choose from list browserList with title "MarketPane" with prompt "Choose the browser MarketPane should open. The Jargon Buster extension must be loaded separately (once) in this browser via its extensions page." default items {item 1 of browserList}
+if chosen is false then
+	return "CANCELLED"
+else
+	return item 1 of chosen
+end if
+EOF
+  local chosen
+  chosen="$(run_applescript_file "$script")"
+  rm -f "$script"
+
+  if [ "$chosen" = "CANCELLED" ] || [ -z "$chosen" ]; then
+    return 1
+  fi
+
+  while IFS='|' read -r name path is_chromium; do
+    [ -z "$name" ] && continue
+    if [ "$name" = "$chosen" ]; then
+      save_browser_config "$name" "$path" "$is_chromium"
+      return 0
+    fi
+  done <<<"$browsers_raw"
+
+  return 1
+}
+
+# --- server / web dev server -----------------------------------------------
+
+is_server_healthy() {
+  local response
+  response="$(curl -fsS -m 2 "$HEALTH_URL" 2>/dev/null)"
+  [[ "$response" == *'"ok":true'* ]]
+}
+
+is_web_healthy() {
+  local status
+  status="$(curl -s -o /dev/null -m 2 -w '%{http_code}' "$WEB_URL" 2>/dev/null)"
+  [ "$status" = "200" ]
+}
+
+# Same shape as the Windows launcher's Start-ServerIfNeeded: already-running
+# check, missing-deps message, background start, then poll for up to 10s
+# (20 x 500ms) before giving up with a real error. Started via a `( cd ... )`
+# subshell so the cd never affects the rest of this script; nohup alone
+# (no explicit disown) is enough for the process to survive both this
+# subshell's exit and the launcher's own eventual exit.
+start_server_if_needed() {
+  if is_server_healthy; then return 0; fi
+
+  if [ ! -x "$TSX_BIN" ]; then
+    local msg
+    printf -v msg 'The server dependencies are not installed yet.\n\nOpen Terminal and run:\ncd "%s"\nnpm install\n\nThen reopen MarketPane.' "$SERVER_DIR"
+    show_error "$msg"
+    return 1
+  fi
+
+  (cd "$SERVER_DIR" && nohup "$TSX_BIN" src/index.ts >"$SERVER_LOG" 2>&1 &)
+
+  local attempts=0
+  while ! is_server_healthy && [ "$attempts" -lt 20 ]; do
+    sleep 0.5
+    attempts=$((attempts + 1))
+  done
+
+  if ! is_server_healthy; then
+    local msg
+    printf -v msg 'The server did not come up after 10 seconds. Check server/.env has a valid GEMINI_API_KEY, or run "npm run dev" inside server/ directly to see the error.\n\nLog: %s' "$SERVER_LOG"
+    show_error "$msg"
+    return 1
+  fi
+  return 0
+}
+
+start_web_if_needed() {
+  if is_web_healthy; then return 0; fi
+
+  if [ ! -x "$VITE_BIN" ]; then
+    local msg
+    printf -v msg 'The web app dependencies are not installed yet.\n\nOpen Terminal and run:\ncd "%s"\nnpm install\n\nThen reopen MarketPane.' "$WEB_DIR"
+    show_error "$msg"
+    return 1
+  fi
+
+  (cd "$WEB_DIR" && nohup "$VITE_BIN" >"$WEB_LOG" 2>&1 &)
+
+  local attempts=0
+  while ! is_web_healthy && [ "$attempts" -lt 20 ]; do
+    sleep 0.5
+    attempts=$((attempts + 1))
+  done
+
+  if ! is_web_healthy; then
+    local msg
+    printf -v msg 'The web app did not come up after 10 seconds. Run "npm run dev" inside web/ directly to see the error.\n\nLog: %s' "$WEB_LOG"
+    show_error "$msg"
+    return 1
+  fi
+  return 0
+}
+
+# --- browser launch ----------------------------------------------------
+
+# Chromium's "--app=<url>" flag opens a borderless window with no address
+# bar, tabs, or bookmarks - same trick and same reasoning as the Windows
+# launcher's Open-Browser: it is still the real, already-installed browser
+# process (full internet access), just launched to look like a standalone
+# app. Firefox has no equivalent flag and falls back to a normal window,
+# exactly like the Windows version's Firefox special-case.
+open_browser() {
+  local url="$1"
+  if [ -z "${BROWSER_PATH:-}" ] || [ ! -d "$BROWSER_PATH" ]; then
+    show_error 'No browser is linked yet. Restart MarketPane to link one.'
+    return 1
+  fi
+
+  if [ "${BROWSER_IS_CHROMIUM:-0}" = "1" ]; then
+    local exe_name
+    exe_name="$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$BROWSER_PATH/Contents/Info.plist" 2>/dev/null)"
+    local binary="$BROWSER_PATH/Contents/MacOS/$exe_name"
+    if [ -n "$exe_name" ] && [ -x "$binary" ]; then
+      (nohup "$binary" "--app=$url" >/dev/null 2>&1 &)
+      return 0
+    fi
+  fi
+
+  # Non-Chromium (Firefox), or the app-mode binary could not be resolved -
+  # `open -a` still launches the real linked browser, just in a normal window.
+  if ! open -a "$BROWSER_PATH" "$url" 2>/dev/null; then
+    local msg
+    printf -v msg 'Could not launch the linked browser at:\n%s' "$BROWSER_PATH"
+    show_error "$msg"
+    return 1
+  fi
+  return 0
+}
+
+# --- status window (AppleScript dialog loop) -------------------------------
+
+# A persistent WinForms status window with live-updating text has no
+# Xcode-free equivalent on macOS (osacompile, the AppleScript app compiler,
+# only runs ON macOS - it cannot be invoked from this authoring machine to
+# produce a real .app). This loop is the closest native approximation: each
+# iteration is a fresh, native `display dialog` showing current status with
+# the same actions (Open in Browser / Change Linked Browser / Quit) as the
+# Windows window's buttons.
+show_status_and_wait() {
+  local script
+  local button
+  local message
+  while true; do
+    printf -v message 'Linked browser: %s\n\nRunning: localhost:8787 (server), localhost:5173 (app)' "$BROWSER_NAME"
+    script="$(mktemp /tmp/marketpane-status.XXXXXX.applescript)"
+    cat >"$script" <<EOF
+display dialog "$message" with title "MarketPane" buttons {"Change Linked Browser", "Quit", "Open in Browser"} default button "Open in Browser"
+EOF
+    button="$(run_applescript_file "$script")"
+    rm -f "$script"
+
+    case "$button" in
+    button\ returned:Open\ in\ Browser)
+      open_browser "$SIMULATOR_URL"
+      ;;
+    button\ returned:Change\ Linked\ Browser)
+      if pick_browser; then
+        load_browser_config
+      fi
+      ;;
+    *)
+      return 0
+      ;;
+    esac
+  done
+}
+
+main() {
+  load_browser_config
+
+  if [ -z "$BROWSER_PATH" ] || [ ! -d "$BROWSER_PATH" ]; then
+    if ! pick_browser; then
+      exit 0
+    fi
+    load_browser_config
+  fi
+
+  if ! start_server_if_needed; then
+    exit 1
+  fi
+
+  if ! start_web_if_needed; then
+    exit 1
+  fi
+
+  open_browser "$SIMULATOR_URL"
+  show_status_and_wait
+}
+
+main
