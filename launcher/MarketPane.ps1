@@ -437,10 +437,14 @@ function Start-WebIfNeeded([System.Windows.Forms.Label]$statusLabel) {
 # (full internet access, no code-signing/reputation gate to clear - unlike a
 # freshly-compiled .exe, which Windows 11's Smart App Control blocks outright
 # on this machine regardless of how it's launched). Firefox is Gecko-based
-# and has no equivalent flag, so it falls back to a normal window.
-function Open-Browser([string]$browserPath, [string]$browserName, [string]$url = $null) {
+# and has no equivalent flag, so it falls back to a normal window - as does
+# any browser when -NoAppMode is passed, e.g. for chrome://extensions:
+# internal browser pages are not guaranteed to render inside a borderless
+# --app= window the way a normal web page does, and there is nothing to
+# gain from app-mode on a settings page anyway.
+function Open-Browser([string]$browserPath, [string]$browserName, [string]$url = $null, [switch]$NoAppMode) {
     try {
-        if ($url -and $browserName -notlike '*firefox*') {
+        if ($url -and -not $NoAppMode -and $browserName -notlike '*firefox*') {
             Start-Process -FilePath $browserPath -ArgumentList "--app=$url"
         } elseif ($url) {
             Start-Process -FilePath $browserPath -ArgumentList $url
@@ -564,7 +568,7 @@ $mainForm.Add_Shown({
     if ($isFirstRun -and $extensionReady) {
         $extensionsUrl = if ($currentConfig.browserName -like '*Firefox*') { 'about:debugging#/runtime/this-firefox' } else { 'chrome://extensions' }
         Show-InfoBox "MarketPane installed its dependencies and built the browser extension for you - almost everything is ready.`n`nTwo things still need one manual step each (browser security requires it - no script can do this part):`n`n1. Load the extension: on the page that's about to open, turn on Developer mode, click 'Load unpacked', and select:`n$extensionDir\dist`n`n2. (Optional) For the AI-powered explain/translate features, add a real Gemini API key to server\.env - the placeholder key lets everything else run fine without it."
-        Open-Browser $currentConfig.browserPath $currentConfig.browserName $extensionsUrl
+        Open-Browser $currentConfig.browserPath $currentConfig.browserName $extensionsUrl -NoAppMode
     }
 })
 
