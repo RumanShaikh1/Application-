@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
 namespace MarketPane.Desktop;
@@ -107,6 +108,8 @@ public class MainForm : Form
         SetStatus("Starting the web app...");
         if (!await EnsureHealthyAsync(WebHealthUrl, VitePath, WebDir, null, "web")) return;
 
+        if (!await EnsureWebView2RuntimeAsync()) return;
+
         SetStatus("Loading...");
         try
         {
@@ -117,8 +120,84 @@ public class MainForm : Form
         }
         catch (Exception ex)
         {
-            ShowError($"Could not start the embedded browser - is the WebView2 Runtime installed? (It ships with Windows 10/11 in almost all cases.)\n\n{ex.Message}");
+            ShowError($"Could not start the embedded browser, even though the WebView2 Runtime was detected.\n\n{ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// The WebView2 Runtime ships pre-installed on almost all Windows 10/11
+    /// machines (bundled with Windows, kept current by Edge's own updater),
+    /// but is not strictly guaranteed everywhere (locked-down enterprise
+    /// images, some Windows N editions, older builds). Rather than just
+    /// erroring if it's missing, this checks for it via the documented
+    /// GetAvailableBrowserVersionString probe and, if absent, downloads and
+    /// silently runs Microsoft's official "Evergreen Bootstrapper" (the
+    /// small ~2MB installer Microsoft explicitly publishes for exactly this
+    /// use case - see "Distribute your app and the WebView2 Runtime" in
+    /// Microsoft's WebView2 docs) rather than leaving the user to find and
+    /// install it by hand. The bootstrapper's own manifest requests
+    /// elevation, so UseShellExecute=true here is required for Windows to
+    /// show the real UAC prompt - that prompt appearing is expected, not a
+    /// bug, on any machine that genuinely needs this step.
+    ///
+    /// NOT exercised end-to-end: the Runtime is already present on the
+    /// machine this was written on, so only the "already installed" branch
+    /// (the GetAvailableBrowserVersionString call succeeding) has actually
+    /// been run. The download-and-install branch is reasoned from
+    /// Microsoft's documented bootstrapper contract, not verified live.
+    /// </summary>
+    private async Task<bool> EnsureWebView2RuntimeAsync()
+    {
+        const string bootstrapperUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+        const string manualDownloadUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
+
+        try
+        {
+            var version = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            if (!string.IsNullOrEmpty(version)) return true;
+        }
+        catch
+        {
+            // Treated as "not found" below regardless of the specific
+            // exception - EnsureCoreWebView2Async will still surface a real
+            // error afterward if installing doesn't actually fix it.
+        }
+
+        SetStatus("Installing the WebView2 Runtime (one-time - a Windows security prompt may appear)...");
+        var bootstrapperPath = Path.Combine(Path.GetTempPath(), "MicrosoftEdgeWebview2Setup.exe");
+        try
+        {
+            using var http = new HttpClient();
+            var bytes = await http.GetByteArrayAsync(bootstrapperUrl);
+            await File.WriteAllBytesAsync(bootstrapperPath, bytes);
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = bootstrapperPath,
+                Arguments = "/silent /install",
+                UseShellExecute = true
+            };
+            using var process = Process.Start(psi)!;
+            await process.WaitForExitAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Could not automatically install the WebView2 Runtime.\n\nInstall it manually from:\n{manualDownloadUrl}\n\nThen reopen MarketPane.\n\n{ex.Message}");
+            return false;
+        }
+
+        try
+        {
+            var version = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            if (!string.IsNullOrEmpty(version)) return true;
+        }
+        catch
+        {
+            // Falls through to the same error below.
+        }
+
+        ShowError($"The WebView2 Runtime still isn't detected after attempting to install it.\n\nInstall it manually from:\n{manualDownloadUrl}\n\nThen reopen MarketPane.");
+        return false;
     }
 
     private async Task<bool> EnsureHealthyAsync(string healthUrl, string exePath, string workingDir, string? scriptArg, string label)
