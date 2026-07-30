@@ -19,6 +19,8 @@ public class MainForm : Form
     private static readonly string WebDir = Path.Combine(RepoRoot, "web");
     private static readonly string TsxPath = Path.Combine(ServerDir, "node_modules", ".bin", "tsx.cmd");
     private static readonly string VitePath = Path.Combine(WebDir, "node_modules", ".bin", "vite.cmd");
+    private static readonly string ServerEnvPath = Path.Combine(ServerDir, ".env");
+    private static readonly string ServerEnvExamplePath = Path.Combine(ServerDir, ".env.example");
 
     private const string ServerHealthUrl = "http://localhost:8787/health";
     private const string WebHealthUrl = "http://localhost:5173/";
@@ -97,6 +99,8 @@ public class MainForm : Form
         _statusPanel.Visible = true;
         _webView.Visible = false;
 
+        EnsureServerEnvFile();
+
         SetStatus("Starting the local server...");
         if (!await EnsureHealthyAsync(ServerHealthUrl, TsxPath, ServerDir, "src/index.ts", "server")) return;
 
@@ -123,8 +127,8 @@ public class MainForm : Form
 
         if (!File.Exists(exePath))
         {
-            ShowError($"The {label} app's dependencies aren't installed yet.\n\nOpen a terminal and run:\n  cd {label}\n  npm install\n\nThen reopen MarketPane.");
-            return false;
+            SetStatus($"Setting up {label} for the first time (installing dependencies - this can take a minute)...");
+            if (!await InstallDependenciesAsync(workingDir, label)) return false;
         }
 
         try
@@ -153,6 +157,97 @@ public class MainForm : Form
 
         ShowError($"The {label} didn't come up after 10 seconds. Run 'npm run dev' inside {label}/ directly to see the error.");
         return false;
+    }
+
+    /// <summary>
+    /// Copies server/.env.example -> server/.env the first time only - never
+    /// overwrites a real, already-configured .env. The server starts fine on
+    /// the placeholder key (see server/src/gemini.ts): only the Gemini-powered
+    /// features need a real one, added later at the user's own pace. Mirrors
+    /// Ensure-ServerEnvFile in launcher/MarketPane.ps1 and
+    /// ensure_server_env_file in launcher/mac/.../MarketPane.
+    /// </summary>
+    private static void EnsureServerEnvFile()
+    {
+        if (File.Exists(ServerEnvExamplePath) && !File.Exists(ServerEnvPath))
+        {
+            File.Copy(ServerEnvExamplePath, ServerEnvPath);
+        }
+    }
+
+    /// <summary>
+    /// `npm install` for one workspace, run synchronously (awaited) so the
+    /// caller can rely on node_modules existing once this returns true. The
+    /// one truly unavoidable manual step this can't remove is Node.js itself
+    /// not being installed at all - mirrors Install-Dependencies in
+    /// launcher/MarketPane.ps1 and install_dependencies in launcher/mac/.
+    /// </summary>
+    private async Task<bool> InstallDependenciesAsync(string workingDir, string label)
+    {
+        var npmPath = FindNpmOnPath();
+        if (npmPath is null)
+        {
+            ShowError($"Node.js isn't installed, so MarketPane can't set up {label} automatically.\n\nInstall Node.js (the LTS version) from https://nodejs.org, then reopen MarketPane.");
+            return false;
+        }
+
+        var installLog = Path.Combine(workingDir, "npm-install.log");
+        var installErrLog = Path.Combine(workingDir, "npm-install.err.log");
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = npmPath,
+                Arguments = "install",
+                WorkingDirectory = workingDir,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var process = Process.Start(psi)!;
+            var stdOutTask = process.StandardOutput.ReadToEndAsync();
+            var stdErrTask = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            await File.WriteAllTextAsync(installLog, await stdOutTask);
+            await File.WriteAllTextAsync(installErrLog, await stdErrTask);
+
+            if (process.ExitCode != 0)
+            {
+                ShowError($"Setting up {label} failed (npm install exited with code {process.ExitCode}).\n\nSee:\n{installErrLog}\n\nor run 'npm install' inside {workingDir} yourself to see the live error.");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Could not run 'npm install' for {label}:\n\n{ex.Message}");
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves npm.cmd from PATH manually (Process.Start with
+    /// UseShellExecute=false does not consult PATHEXT the way a shell would),
+    /// checking PATHEXT's own extension list rather than hardcoding ".cmd" -
+    /// npm ships as npm.cmd on Windows in every install method observed
+    /// (installer, nvm-windows, winget), but this stays correct if that ever
+    /// changes.
+    /// </summary>
+    private static string? FindNpmOnPath()
+    {
+        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
+        var pathExt = Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD";
+        var extensions = pathExt.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var dir in pathEnv.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            foreach (var ext in extensions)
+            {
+                var candidate = Path.Combine(dir, "npm" + ext);
+                if (File.Exists(candidate)) return candidate;
+            }
+        }
+        return null;
     }
 
     private static async Task<bool> IsHealthyAsync(string url)
