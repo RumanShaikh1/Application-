@@ -11,37 +11,36 @@ web/        standalone React app - Decision Replay (scenario list, player, resul
 mobile/     Expo/React Native app - Decision Replay, same core loop, native iOS/Android
 shared/     TypeScript types used by all client workspaces
 launcher/   standalone MarketPane.exe-style desktop app (WinForms/PowerShell) that links a browser and starts the server
+            double-click launcher/MarketPane.bat to run it - see "Getting started (Windows)" below
             (launcher/MarketPane.Desktop/ is an unused, built-but-not-runnable alternative - see Notes below)
             launcher/mac/ is the macOS equivalent (a MarketPane.app bundle) - see "Running on macOS" below
 ```
 
-## Everyday use (after one-time setup below)
+## Getting started (Windows)
 
-Double-click the **MarketPane** icon on the Desktop. It's a real app window (not a background script) - the icon is the actual brand spark mark.
+**Install Node.js first** (one-time, unavoidable): https://nodejs.org, the LTS version. That's the only real prerequisite - everything else below is one double-click.
 
-- **First run:** prompts you to link a browser. Detection reads the Windows "App Paths" registry keys (the same mechanism every browser installer registers, and the one Windows itself uses to resolve `chrome`/`msedge`/etc.), so it finds Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc regardless of *where* they're installed - not just the default Program Files location. If somehow nothing is found, the file picker opens automatically instead of making you find "Other" yourself. This is saved in `%APPDATA%\MarketPane\config.json`. It then **installs `server/`'s and `web/`'s dependencies and builds the browser extension automatically** if they aren't already in place (the status label shows "Setting up ... for the first time" while `npm install`/`npm run build` run in the background - this can take a minute or two the very first time, depending on your connection), and copies `server/.env.example` to `server/.env` if no `.env` exists yet, so the server has something to start with. Once everything's ready, it opens `chrome://extensions` (or `about:debugging` for Firefox) with a one-time dialog telling you exactly what to click - loading an unpacked extension is the one step no script can automate, since Chrome deliberately requires a real click there for security.
-- **Every run:** starts the local API server if it isn't already running, then the `web/` app's dev server, then opens your linked browser straight to **the Simulator** (`localhost:5173/simulator`) in **app mode** - a borderless window with no address bar, tabs, or bookmarks (Chromium's `--app=<url>` flag), not a blank tab and not a normal browser window either. It's still the real, already-installed browser process underneath (full internet access), just launched to look and feel like a standalone application. Status updates as each piece comes up ("Server: running - starting app..." then "Running: localhost:8787 (server), localhost:5173 (app)"). The window stays open with an **Open in Browser** button (to reopen the Simulator without relaunching the app) and **Change Linked Browser...**.
-- Any failure (missing dependencies, a failed `npm install`/build, server not responding, browser not found) shows a real error dialog - nothing fails silently. Install/build errors point at a log file (`npm-install.log`/`npm-install.err.log` next to whichever workspace failed) with the real output.
+**Then just double-click `launcher\MarketPane.bat`.** No PowerShell command, no shortcut to set up first, no terminal - `.bat` files run directly on double-click in Windows, unlike `.ps1` files (which Windows opens in Notepad instead of running, for security reasons). `MarketPane.bat` is a two-line wrapper that finds its own folder automatically and hands off to `MarketPane.ps1` - it works from wherever you extracted the project, with nothing to configure first.
+
+The first time you double-click it:
+- **Windows may show a blue "Windows protected your PC" SmartScreen banner**, since the file isn't code-signed - click **"More info"** → **"Run anyway"**. This is a one-time click; Windows remembers your choice for this file afterward.
+- It asks which browser to link (detected automatically - Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc, wherever they're installed).
+- It **installs everything it needs automatically** - `server/`'s and `web/`'s dependencies, and builds the browser extension - showing a status message while that happens (can take a minute or two the first time, depending on your connection). No commands to type.
+- It then opens `chrome://extensions` with a one-time reminder to click **"Load unpacked"** yourself - the one step that has to stay manual, since browsers deliberately require a real click there for security. Everything else is already installed and running by this point.
+
+Every time after that, double-clicking `MarketPane.bat` just opens straight to the app - a few seconds, not a few minutes.
+
+**Optional - a Desktop icon:** right-click `launcher\MarketPane.bat` in File Explorer → **Send to** → **Desktop (create shortcut)**. That's a normal Windows feature, not a project script - no terminal needed. (`launcher\create-shortcut.ps1` also still exists and makes a nicer-looking icon using the real app icon instead of the generic `.bat` icon, if you'd rather run that once from PowerShell - see "Manual run" below for how.)
+
+Add a real key to `server/.env` whenever you want the AI-powered explain/translate features - a placeholder ships by default so the rest of the app runs fine without one.
 
 Both the API server and the `web/` dev server keep running in the background after you close the app/browser, so relaunching later is instant. To stop them, end the `node`/`tsx` (API) and `node`/`vite` (`web/`) processes in Task Manager.
 
-## One-time setup
+## Manual run (skipping the launcher)
 
-**Prerequisite: Node.js.** Install it from https://nodejs.org (the LTS version) if it isn't already on this machine - that's the one thing the launcher genuinely can't do for itself. If it's missing, the launcher tells you so directly (with that link) instead of failing silently, the first time it needs `npm` and can't find it.
+Skipping the launcher means skipping its auto-install too, so run `cd server && npm install` and `cd web && npm install` yourself first if you haven't already (Node.js is the only prerequisite - see "Getting started" above). Then `cd server && npm run dev` in one terminal (verify with `curl http://localhost:8787/health`), `cd web && npm run dev` in another, and open Chrome/Edge yourself.
 
-**Create the desktop shortcut:**
-
-```
-powershell -ExecutionPolicy Bypass -File launcher\create-shortcut.ps1
-```
-
-This is already done on this machine - a `MarketPane` icon should be on your Desktop. **Re-run this any time you edit `launcher/MarketPane.ps1`, move the project folder, or regenerate the icon** - the shortcut bakes in absolute paths at creation time and won't pick up changes on its own.
-
-From here on, just double-click the Desktop icon - see "Everyday use" above for exactly what happens on first launch (dependency install, extension build, and a one-time prompt for the one step that has to stay manual: clicking **Load unpacked** yourself). Add a real key to `server/.env` whenever you want the AI-powered explain/translate features - a placeholder ships by default so the rest of the app runs fine without one.
-
-## Manual run (skipping the shortcut)
-
-Skipping the launcher means skipping its auto-install too, so run `cd server && npm install` and `cd web && npm install` yourself first if you haven't already (see "One-time setup" above for the Node.js prerequisite). Then `cd server && npm run dev` in one terminal (verify with `curl http://localhost:8787/health`), `cd web && npm run dev` in another, and open Chrome/Edge yourself.
+This is also where `launcher\create-shortcut.ps1` lives, if you'd rather have a proper-looking icon (the real app icon, not the generic `.bat` one) instead of the "Send to > Desktop" shortcut mentioned above: open PowerShell in `launcher\` (Shift+right-click in that folder → "Open PowerShell window here") and run `.\create-shortcut.ps1` (or, from anywhere, `powershell -ExecutionPolicy Bypass -File launcher\create-shortcut.ps1`). Purely cosmetic - `MarketPane.bat` and the shortcut this produces do exactly the same thing.
 
 To get the extension loaded manually (the launcher does this for you, but a manual run doesn't):
 
