@@ -18,44 +18,17 @@ launcher/   standalone MarketPane.exe-style desktop app (WinForms/PowerShell) th
 
 Double-click the **MarketPane** icon on the Desktop. It's a real app window (not a background script) - the icon is the actual brand spark mark.
 
-- **First run:** prompts you to link a browser. Detection reads the Windows "App Paths" registry keys (the same mechanism every browser installer registers, and the one Windows itself uses to resolve `chrome`/`msedge`/etc.), so it finds Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc regardless of *where* they're installed - not just the default Program Files location. If somehow nothing is found, the file picker opens automatically instead of making you find "Other" yourself. This is saved in `%APPDATA%\MarketPane\config.json`.
+- **First run:** prompts you to link a browser. Detection reads the Windows "App Paths" registry keys (the same mechanism every browser installer registers, and the one Windows itself uses to resolve `chrome`/`msedge`/etc.), so it finds Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc regardless of *where* they're installed - not just the default Program Files location. If somehow nothing is found, the file picker opens automatically instead of making you find "Other" yourself. This is saved in `%APPDATA%\MarketPane\config.json`. It then **installs `server/`'s and `web/`'s dependencies and builds the browser extension automatically** if they aren't already in place (the status label shows "Setting up ... for the first time" while `npm install`/`npm run build` run in the background - this can take a minute or two the very first time, depending on your connection), and copies `server/.env.example` to `server/.env` if no `.env` exists yet, so the server has something to start with. Once everything's ready, it opens `chrome://extensions` (or `about:debugging` for Firefox) with a one-time dialog telling you exactly what to click - loading an unpacked extension is the one step no script can automate, since Chrome deliberately requires a real click there for security.
 - **Every run:** starts the local API server if it isn't already running, then the `web/` app's dev server, then opens your linked browser straight to **the Simulator** (`localhost:5173/simulator`) in **app mode** - a borderless window with no address bar, tabs, or bookmarks (Chromium's `--app=<url>` flag), not a blank tab and not a normal browser window either. It's still the real, already-installed browser process underneath (full internet access), just launched to look and feel like a standalone application. Status updates as each piece comes up ("Server: running - starting app..." then "Running: localhost:8787 (server), localhost:5173 (app)"). The window stays open with an **Open in Browser** button (to reopen the Simulator without relaunching the app) and **Change Linked Browser...**.
-- Any failure (missing dependencies, server not responding, browser not found) shows a real error dialog - nothing fails silently.
+- Any failure (missing dependencies, a failed `npm install`/build, server not responding, browser not found) shows a real error dialog - nothing fails silently. Install/build errors point at a log file (`npm-install.log`/`npm-install.err.log` next to whichever workspace failed) with the real output.
 
 Both the API server and the `web/` dev server keep running in the background after you close the app/browser, so relaunching later is instant. To stop them, end the `node`/`tsx` (API) and `node`/`vite` (`web/`) processes in Task Manager.
 
 ## One-time setup
 
-**1. Install server and web app dependencies:**
+**Prerequisite: Node.js.** Install it from https://nodejs.org (the LTS version) if it isn't already on this machine - that's the one thing the launcher genuinely can't do for itself. If it's missing, the launcher tells you so directly (with that link) instead of failing silently, the first time it needs `npm` and can't find it.
 
-```
-cd server
-npm install
-cd ../web
-npm install
-```
-
-Add your Gemini key to `server/.env` (copy `server/.env.example` first) if it isn't already there. The desktop launcher starts both `server/` and `web/` for you on every run (see "Everyday use" above) - this step just needs to have happened once first.
-
-**2. Build the extension:**
-
-```
-cd extension
-npm install
-npm run build
-```
-
-This produces `extension/dist/` (manifest, background.js, content.js, content.css, icons).
-
-**3. Load it in Chrome/Edge, once:**
-
-- Go to `chrome://extensions` (or `edge://extensions`)
-- Enable **Developer mode** (top right)
-- Click **Load unpacked** → select `extension/dist`
-
-This stays loaded across browser restarts as long as developer mode stays on - you don't need to redo this each time, only after rebuilding the extension.
-
-**4. Create the desktop shortcut:**
+**Create the desktop shortcut:**
 
 ```
 powershell -ExecutionPolicy Bypass -File launcher\create-shortcut.ps1
@@ -63,11 +36,21 @@ powershell -ExecutionPolicy Bypass -File launcher\create-shortcut.ps1
 
 This is already done on this machine - a `MarketPane` icon should be on your Desktop. **Re-run this any time you edit `launcher/MarketPane.ps1`, move the project folder, or regenerate the icon** - the shortcut bakes in absolute paths at creation time and won't pick up changes on its own.
 
-From here on, just double-click the Desktop icon (see "Everyday use" above).
+From here on, just double-click the Desktop icon - see "Everyday use" above for exactly what happens on first launch (dependency install, extension build, and a one-time prompt for the one step that has to stay manual: clicking **Load unpacked** yourself). Add a real key to `server/.env` whenever you want the AI-powered explain/translate features - a placeholder ships by default so the rest of the app runs fine without one.
 
 ## Manual run (skipping the shortcut)
 
-`cd server && npm run dev` in one terminal (verify with `curl http://localhost:8787/health`), then open Chrome/Edge yourself - the extension loaded in step 3 above works regardless of how the browser was opened.
+Skipping the launcher means skipping its auto-install too, so run `cd server && npm install` and `cd web && npm install` yourself first if you haven't already (see "One-time setup" above for the Node.js prerequisite). Then `cd server && npm run dev` in one terminal (verify with `curl http://localhost:8787/health`), `cd web && npm run dev` in another, and open Chrome/Edge yourself.
+
+To get the extension loaded manually (the launcher does this for you, but a manual run doesn't):
+
+```
+cd extension
+npm install
+npm run build
+```
+
+This produces `extension/dist/` (manifest, background.js, content.js, content.css, icons). Then, once per browser: go to `chrome://extensions` (or `edge://extensions`), enable **Developer mode** (top right), click **Load unpacked**, and select `extension/dist`. It stays loaded across browser restarts as long as developer mode stays on - you only need to redo this after rebuilding the extension, and it works regardless of how the browser itself was opened.
 
 **During development:** `npm run watch` inside `extension/` rebuilds on file changes - reload the extension at `chrome://extensions` (the circular arrow icon on the card) to pick up changes, then refresh the page you're testing on.
 

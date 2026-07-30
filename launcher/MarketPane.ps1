@@ -30,6 +30,8 @@ if (-not [DpiAwareness]::SetProcessDpiAwarenessContext($DPI_AWARENESS_CONTEXT_PE
 $root = Split-Path -Parent $PSScriptRoot
 $serverDir = Join-Path $root 'server'
 $tsx = Join-Path $serverDir 'node_modules\.bin\tsx.cmd'
+$serverEnvPath = Join-Path $serverDir '.env'
+$serverEnvExamplePath = Join-Path $serverDir '.env.example'
 $healthUrl = 'http://localhost:8787/health'
 # The API server (above) only serves JSON - the Simulator (and Decision
 # Replay, Tax Understanding) are the web/ React app, served by its own Vite
@@ -40,6 +42,8 @@ $webDir = Join-Path $root 'web'
 $vite = Join-Path $webDir 'node_modules\.bin\vite.cmd'
 $webUrl = 'http://localhost:5173'
 $simulatorUrl = 'http://localhost:5173/simulator'
+$extensionDir = Join-Path $root 'extension'
+$extensionDistManifest = Join-Path $extensionDir 'dist\manifest.json'
 $iconPath = Join-Path $PSScriptRoot 'assets\app-icon.ico'
 $configDir = Join-Path $env:APPDATA 'MarketPane'
 $configPath = Join-Path $configDir 'config.json'
@@ -50,6 +54,95 @@ function Show-ErrorBox([string]$message) {
     [System.Windows.Forms.MessageBox]::Show($message, 'MarketPane', 'OK', 'Error') | Out-Null
 }
 
+function Show-InfoBox([string]$message) {
+    [System.Windows.Forms.MessageBox]::Show($message, 'MarketPane', 'OK', 'Information') | Out-Null
+}
+
+# Copies server/.env.example -> server/.env the first time only - never
+# overwrites a real, already-configured .env. The server starts fine on the
+# placeholder key (see server/src/gemini.ts): only the Gemini-powered
+# features (translate, context, AI trade-rationale grading) need a real one,
+# added later at the user's own pace.
+function Ensure-ServerEnvFile {
+    if ((Test-Path $serverEnvExamplePath) -and -not (Test-Path $serverEnvPath)) {
+        Copy-Item $serverEnvExamplePath $serverEnvPath
+    }
+}
+
+# `npm install` for one workspace, run synchronously (blocking, with a
+# visible status update) so the caller can rely on node_modules existing
+# once this returns true. The one truly unavoidable manual step this can't
+# remove is Node.js itself not being installed at all - there's no safe way
+# to silently install a system-wide runtime on someone else's machine, so
+# that case gets a clear, actionable error instead of a silent failure.
+function Install-Dependencies([string]$workDir, [string]$label, [System.Windows.Forms.Label]$statusLabel) {
+    $npmCmd = Get-Command 'npm.cmd' -ErrorAction SilentlyContinue
+    if (-not $npmCmd) { $npmCmd = Get-Command 'npm' -ErrorAction SilentlyContinue }
+    if (-not $npmCmd) {
+        Show-ErrorBox "Node.js isn't installed, so MarketPane can't set up $label automatically.`n`nInstall Node.js (the LTS version) from https://nodejs.org, then reopen MarketPane."
+        return $false
+    }
+
+    if ($statusLabel) {
+        $statusLabel.Text = "Setting up $label for the first time (installing dependencies - this can take a minute)..."
+        $statusLabel.Refresh()
+    }
+
+    $installLog = Join-Path $workDir 'npm-install.log'
+    $installErrLog = Join-Path $workDir 'npm-install.err.log'
+    try {
+        $process = Start-Process -FilePath $npmCmd.Source -ArgumentList 'install' -WorkingDirectory $workDir -WindowStyle Hidden -Wait -PassThru `
+            -RedirectStandardOutput $installLog -RedirectStandardError $installErrLog
+    } catch {
+        Show-ErrorBox "Could not run 'npm install' for $label`:`n`n$_"
+        return $false
+    }
+
+    if ($process.ExitCode -ne 0) {
+        Show-ErrorBox "Setting up $label failed (npm install exited with code $($process.ExitCode)).`n`nSee:`n$installErrLog`n`nor run 'npm install' inside $workDir yourself to see the live error."
+        return $false
+    }
+    return $true
+}
+
+# Builds extension/dist the first time only (checked via its manifest.json,
+# not just folder existence - a partial/failed prior build could leave the
+# folder present but empty). Loading it into the browser afterward still
+# needs one manual click at chrome://extensions - Chrome deliberately
+# requires that gesture for unpacked extensions, and no script can bypass
+# it, so this only removes the *build* step, not the load step.
+function Ensure-ExtensionBuilt([System.Windows.Forms.Label]$statusLabel) {
+    if (Test-Path $extensionDistManifest) { return $true }
+
+    if (-not (Install-Dependencies -workDir $extensionDir -label 'the browser extension' -statusLabel $statusLabel)) {
+        return $false
+    }
+
+    $npmCmd = Get-Command 'npm.cmd' -ErrorAction SilentlyContinue
+    if (-not $npmCmd) { $npmCmd = Get-Command 'npm' -ErrorAction SilentlyContinue }
+    if (-not $npmCmd) { return $false }
+
+    if ($statusLabel) {
+        $statusLabel.Text = 'Building the browser extension for the first time...'
+        $statusLabel.Refresh()
+    }
+
+    $buildLog = Join-Path $extensionDir 'npm-build.log'
+    $buildErrLog = Join-Path $extensionDir 'npm-build.err.log'
+    try {
+        $process = Start-Process -FilePath $npmCmd.Source -ArgumentList 'run', 'build' -WorkingDirectory $extensionDir -WindowStyle Hidden -Wait -PassThru `
+            -RedirectStandardOutput $buildLog -RedirectStandardError $buildErrLog
+    } catch {
+        Show-ErrorBox "Could not build the browser extension:`n`n$_"
+        return $false
+    }
+
+    if ($process.ExitCode -ne 0) {
+        Show-ErrorBox "Building the browser extension failed (exit code $($process.ExitCode)).`n`nSee:`n$buildErrLog"
+        return $false
+    }
+    return (Test-Path $extensionDistManifest)
+}
 
 # The App Paths registry convention every major browser installer
 # registers (HKLM for a machine-wide install, WOW6432Node for a 32-bit
@@ -264,12 +357,15 @@ function Test-ServerHealthy {
 
 # Returns $true if the server is confirmed healthy, $false otherwise -
 # and always shows a real error, never fails silently.
-function Start-ServerIfNeeded {
+function Start-ServerIfNeeded([System.Windows.Forms.Label]$statusLabel) {
     if (Test-ServerHealthy) { return $true }
 
+    Ensure-ServerEnvFile
+
     if (-not (Test-Path $tsx)) {
-        Show-ErrorBox "The server's dependencies aren't installed yet.`n`nOpen a terminal and run:`n  cd server`n  npm install`n`nThen reopen MarketPane."
-        return $false
+        if (-not (Install-Dependencies -workDir $serverDir -label 'the server' -statusLabel $statusLabel)) {
+            return $false
+        }
     }
 
     try {
@@ -305,12 +401,13 @@ function Test-WebHealthy {
 # second, independent local process, so it gets the same
 # already-running/missing-deps/timeout handling rather than being assumed
 # to "just work" because the API server did.
-function Start-WebIfNeeded {
+function Start-WebIfNeeded([System.Windows.Forms.Label]$statusLabel) {
     if (Test-WebHealthy) { return $true }
 
     if (-not (Test-Path $vite)) {
-        Show-ErrorBox "The web app's dependencies aren't installed yet.`n`nOpen a terminal and run:`n  cd web`n  npm install`n`nThen reopen MarketPane."
-        return $false
+        if (-not (Install-Dependencies -workDir $webDir -label 'the web app' -statusLabel $statusLabel)) {
+            return $false
+        }
     }
 
     try {
@@ -436,24 +533,39 @@ $changeBrowserButton.Add_Click({
 
 $mainForm.Add_Shown({
     $mainForm.Activate()
+    # Checked before any of the three setup steps run below, so this
+    # reflects "was anything missing when MarketPane opened" - used after
+    # everything succeeds to decide whether this is a genuine first run
+    # worth a one-time welcome message, not just every-launch noise.
+    $isFirstRun = -not (Test-Path $tsx) -or -not (Test-Path $vite) -or -not (Test-Path $extensionDistManifest)
+
     $statusLabel.Text = 'Server: starting...'
-    $serverHealthy = Start-ServerIfNeeded
+    $serverHealthy = Start-ServerIfNeeded -statusLabel $statusLabel
     if (-not $serverHealthy) {
         $statusLabel.Text = 'Server: not running (see error)'
         return
     }
 
     $statusLabel.Text = 'Server: running - starting app...'
-    $webHealthy = Start-WebIfNeeded
+    $webHealthy = Start-WebIfNeeded -statusLabel $statusLabel
     if (-not $webHealthy) {
         $statusLabel.Text = 'Server: running on localhost:8787 - app: not running (see error)'
         return
     }
 
+    $statusLabel.Text = 'Running: localhost:8787 (server), localhost:5173 (app) - preparing extension...'
+    $extensionReady = Ensure-ExtensionBuilt -statusLabel $statusLabel
+
     $statusLabel.Text = 'Running: localhost:8787 (server), localhost:5173 (app)'
     $openButton.Enabled = $true
     $currentConfig = Load-Config
     Open-Browser $currentConfig.browserPath $currentConfig.browserName $simulatorUrl
+
+    if ($isFirstRun -and $extensionReady) {
+        $extensionsUrl = if ($currentConfig.browserName -like '*Firefox*') { 'about:debugging#/runtime/this-firefox' } else { 'chrome://extensions' }
+        Show-InfoBox "MarketPane installed its dependencies and built the browser extension for you - almost everything is ready.`n`nTwo things still need one manual step each (browser security requires it - no script can do this part):`n`n1. Load the extension: on the page that's about to open, turn on Developer mode, click 'Load unpacked', and select:`n$extensionDir\dist`n`n2. (Optional) For the AI-powered explain/translate features, add a real Gemini API key to server\.env - the placeholder key lets everything else run fine without it."
+        Open-Browser $currentConfig.browserPath $currentConfig.browserName $extensionsUrl
+    }
 })
 
 [void]$mainForm.ShowDialog()
