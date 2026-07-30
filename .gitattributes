@@ -6,8 +6,3 @@
 # the two branches merge into each other regularly.
 *.sh text eol=lf
 launcher/mac/MarketPane.app/Contents/MacOS/MarketPane text eol=lf
-
-# Pre-built distributable binary - too large for a normal git blob (over
-# GitHub's 100MB push limit), stored via Git LFS instead. See "Getting
-# started (Windows)" in README.md for what this is and its trade-offs.
-launcher/MarketPane.Desktop/prebuilt/MarketPane.Desktop.exe filter=lfs diff=lfs merge=lfs -text
