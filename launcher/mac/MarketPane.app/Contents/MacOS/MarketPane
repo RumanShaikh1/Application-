@@ -1,10 +1,12 @@
 #!/bin/bash
 # MarketPane launcher (macOS) - ported function-by-function from
 # launcher/MarketPane.ps1 (Windows): first run prompts you to link a
-# browser, then every run starts the local server + web app if needed and
-# opens your linked browser to the Simulator in app mode. Every failure
-# shows a real dialog - nothing fails silently, same principle as the
-# Windows original's Show-ErrorBox.
+# browser, installs server/ and web/'s dependencies and builds the browser
+# extension automatically if they aren't already in place, then every run
+# starts the local server + web app if needed and opens your linked
+# browser to the Simulator in app mode. Every failure shows a real dialog -
+# nothing fails silently, same principle as the Windows original's
+# Show-ErrorBox.
 #
 # NOTE ON VERIFICATION: authored and syntax-checked (bash -n) on a non-Mac
 # machine - there is no Mac available to actually run the double-click /
@@ -33,9 +35,13 @@ SERVER_DIR="$ROOT/server"
 WEB_DIR="$ROOT/web"
 TSX_BIN="$SERVER_DIR/node_modules/.bin/tsx"
 VITE_BIN="$WEB_DIR/node_modules/.bin/vite"
+SERVER_ENV_PATH="$SERVER_DIR/.env"
+SERVER_ENV_EXAMPLE_PATH="$SERVER_DIR/.env.example"
 HEALTH_URL="http://localhost:8787/health"
 WEB_URL="http://localhost:5173"
 SIMULATOR_URL="http://localhost:5173/simulator"
+EXTENSION_DIR="$ROOT/extension"
+EXTENSION_DIST_MANIFEST="$EXTENSION_DIR/dist/manifest.json"
 
 # ~/Library/Application Support is the standard per-user config location on
 # macOS - the direct analogue of the Windows launcher's %APPDATA%\MarketPane.
@@ -65,6 +71,83 @@ display dialog "$message" with title "MarketPane" buttons {"OK"} default button 
 EOF
   run_applescript_file "$script" >/dev/null
   rm -f "$script"
+}
+
+show_info() {
+  local message="$1"
+  local script
+  script="$(mktemp /tmp/marketpane-dialog.XXXXXX.applescript)"
+  cat >"$script" <<EOF
+display dialog "$message" with title "MarketPane" buttons {"OK"} default button "OK"
+EOF
+  run_applescript_file "$script" >/dev/null
+  rm -f "$script"
+}
+
+# --- first-run setup: dependencies, extension build, .env ------------------
+
+# Copies server/.env.example -> server/.env the first time only - never
+# overwrites a real, already-configured .env. The server starts fine on the
+# placeholder key (see server/src/gemini.ts): only the Gemini-powered
+# features (translate, context, AI trade-rationale grading) need a real
+# one, added later at the user's own pace.
+ensure_server_env_file() {
+  if [ -f "$SERVER_ENV_EXAMPLE_PATH" ] && [ ! -f "$SERVER_ENV_PATH" ]; then
+    cp "$SERVER_ENV_EXAMPLE_PATH" "$SERVER_ENV_PATH"
+  fi
+}
+
+# `npm install` for one workspace, run synchronously so the caller can rely
+# on node_modules existing once this returns 0. The one truly unavoidable
+# manual step this cannot remove is Node.js itself not being installed at
+# all - there is no safe way to silently install a system-wide runtime on
+# someone else's Mac, so that case gets a clear, actionable error instead
+# of a silent failure.
+install_dependencies() {
+  local work_dir="$1"
+  local label="$2"
+
+  if ! command -v npm >/dev/null 2>&1; then
+    local msg
+    printf -v msg 'Node.js is not installed, so MarketPane cannot set up %s automatically.\n\nInstall Node.js (the LTS version) from https://nodejs.org, then reopen MarketPane.' "$label"
+    show_error "$msg"
+    return 1
+  fi
+
+  local install_log="$work_dir/npm-install.log"
+  local install_err_log="$work_dir/npm-install.err.log"
+  if ! (cd "$work_dir" && npm install >"$install_log" 2>"$install_err_log"); then
+    local msg
+    printf -v msg 'Setting up %s failed (npm install did not succeed).\n\nSee:\n%s\n\nor run "npm install" inside %s yourself to see the live error.' "$label" "$install_err_log" "$work_dir"
+    show_error "$msg"
+    return 1
+  fi
+  return 0
+}
+
+# Builds extension/dist the first time only (checked via its manifest.json,
+# not just folder existence - a partial/failed prior build could leave the
+# folder present but empty). Loading it into the browser afterward still
+# needs one manual click at chrome://extensions - Chrome deliberately
+# requires that gesture for unpacked extensions, and no script can bypass
+# it, so this only removes the *build* step, not the load step.
+ensure_extension_built() {
+  if [ -f "$EXTENSION_DIST_MANIFEST" ]; then return 0; fi
+
+  if ! install_dependencies "$EXTENSION_DIR" "the browser extension"; then
+    return 1
+  fi
+
+  local build_log="$EXTENSION_DIR/npm-build.log"
+  local build_err_log="$EXTENSION_DIR/npm-build.err.log"
+  if ! (cd "$EXTENSION_DIR" && npm run build >"$build_log" 2>"$build_err_log"); then
+    local msg
+    printf -v msg 'Building the browser extension failed.\n\nSee:\n%s' "$build_err_log"
+    show_error "$msg"
+    return 1
+  fi
+
+  [ -f "$EXTENSION_DIST_MANIFEST" ]
 }
 
 # --- browser detection -----------------------------------------------------
@@ -207,11 +290,12 @@ is_web_healthy() {
 start_server_if_needed() {
   if is_server_healthy; then return 0; fi
 
+  ensure_server_env_file
+
   if [ ! -x "$TSX_BIN" ]; then
-    local msg
-    printf -v msg 'The server dependencies are not installed yet.\n\nOpen Terminal and run:\ncd "%s"\nnpm install\n\nThen reopen MarketPane.' "$SERVER_DIR"
-    show_error "$msg"
-    return 1
+    if ! install_dependencies "$SERVER_DIR" "the server"; then
+      return 1
+    fi
   fi
 
   (cd "$SERVER_DIR" && nohup "$TSX_BIN" src/index.ts >"$SERVER_LOG" 2>&1 &)
@@ -235,10 +319,9 @@ start_web_if_needed() {
   if is_web_healthy; then return 0; fi
 
   if [ ! -x "$VITE_BIN" ]; then
-    local msg
-    printf -v msg 'The web app dependencies are not installed yet.\n\nOpen Terminal and run:\ncd "%s"\nnpm install\n\nThen reopen MarketPane.' "$WEB_DIR"
-    show_error "$msg"
-    return 1
+    if ! install_dependencies "$WEB_DIR" "the web app"; then
+      return 1
+    fi
   fi
 
   (cd "$WEB_DIR" && nohup "$VITE_BIN" >"$WEB_LOG" 2>&1 &)
@@ -294,6 +377,18 @@ open_browser() {
   return 0
 }
 
+# Always a normal window, never app-mode - for internal browser pages like
+# chrome://extensions, which are not guaranteed to render correctly inside
+# a borderless --app= window the way a normal page does, and gain nothing
+# from being borderless anyway.
+open_browser_normal_window() {
+  local url="$1"
+  if [ -z "${BROWSER_PATH:-}" ] || [ ! -d "$BROWSER_PATH" ]; then
+    return 1
+  fi
+  open -a "$BROWSER_PATH" "$url" 2>/dev/null
+}
+
 # --- status window (AppleScript dialog loop) -------------------------------
 
 # A persistent WinForms status window with live-updating text has no
@@ -342,6 +437,15 @@ main() {
     load_browser_config
   fi
 
+  # Checked before any of the three setup steps below, so this reflects
+  # "was anything missing when MarketPane opened" - used after everything
+  # succeeds to decide whether this is a genuine first run worth a
+  # one-time welcome message, not just every-launch noise.
+  local is_first_run=0
+  if [ ! -x "$TSX_BIN" ] || [ ! -x "$VITE_BIN" ] || [ ! -f "$EXTENSION_DIST_MANIFEST" ]; then
+    is_first_run=1
+  fi
+
   if ! start_server_if_needed; then
     exit 1
   fi
@@ -350,7 +454,24 @@ main() {
     exit 1
   fi
 
+  local extension_ready=1
+  ensure_extension_built || extension_ready=0
+
   open_browser "$SIMULATOR_URL"
+
+  if [ "$is_first_run" = "1" ] && [ "$extension_ready" = "1" ]; then
+    local extensions_label="On the page that is about to open, turn on Developer mode, click \\\"Load unpacked\\\", and select"
+    local extensions_url="chrome://extensions"
+    if [ "${BROWSER_IS_CHROMIUM:-0}" != "1" ]; then
+      extensions_label="On the page that is about to open, click \\\"Load Temporary Add-on\\\" and select the manifest.json inside"
+      extensions_url="about:debugging#/runtime/this-firefox"
+    fi
+    local msg
+    printf -v msg 'MarketPane installed its dependencies and built the browser extension for you - almost everything is ready.\n\nOne thing still needs a manual step (browser security requires it - no script can do this part):\n\n%s:\n%s/dist\n\nOptional: for the AI-powered explain/translate features, add a real Gemini API key to server/.env - the placeholder key lets everything else run fine without it.' "$extensions_label" "$EXTENSION_DIR"
+    show_info "$msg"
+    open_browser_normal_window "$extensions_url"
+  fi
+
   show_status_and_wait
 }
 
