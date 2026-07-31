@@ -14,3 +14,4 @@ obj/
 # publish) - only the final prebuilt/MarketPane.Desktop.exe is committed.
 server/dist-embed/
 launcher/MarketPane.Desktop/embed/
+launcher/mac/dist-stage/

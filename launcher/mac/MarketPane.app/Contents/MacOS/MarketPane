@@ -1,12 +1,21 @@
 #!/bin/bash
-# MarketPane launcher (macOS) - ported function-by-function from
-# launcher/MarketPane.ps1 (Windows): first run prompts you to link a
-# browser, installs server/ and web/'s dependencies and builds the browser
-# extension automatically if they aren't already in place, then every run
-# starts the local server + web app if needed and opens your linked
-# browser to the Simulator in app mode. Every failure shows a real dialog -
+# MarketPane launcher (macOS) - a genuinely zero-prerequisite app: a portable
+# Node.js runtime (both Apple Silicon and Intel builds), the bundled server,
+# the built web app, and its data fixtures all ship inside this .app bundle's
+# own Contents/Resources/ - no Node.js install, no npm install, no separate
+# repo checkout needed on the machine this runs on. First run just links a
+# browser (there is no Xcode-free way to embed a real native webview - see
+# open_browser below), then every run starts the embedded server and opens
+# the linked browser to it in app mode. Every failure shows a real dialog -
 # nothing fails silently, same principle as the Windows original's
 # Show-ErrorBox.
+#
+# The Jargon Buster browser extension is a separate concern, deliberately
+# not handled by this launcher (matches the Windows MarketPane.Desktop.exe
+# split: MarketPane.bat/MarketPane.ps1 remains the path that builds and
+# loads the extension, still needs Node.js for that one piece - this .app
+# is the zero-dependency alternative for Decision Replay/Simulator/Tax
+# Understanding/Sandbox/Learn only, same as its Windows counterpart).
 #
 # NOTE ON VERIFICATION: authored and syntax-checked (bash -n) on a non-Mac
 # machine - there is no Mac available to actually run the double-click /
@@ -30,31 +39,30 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
-SERVER_DIR="$ROOT/server"
-WEB_DIR="$ROOT/web"
-TSX_BIN="$SERVER_DIR/node_modules/.bin/tsx"
-VITE_BIN="$WEB_DIR/node_modules/.bin/vite"
-SERVER_ENV_PATH="$SERVER_DIR/.env"
-SERVER_ENV_EXAMPLE_PATH="$SERVER_DIR/.env.example"
-HEALTH_URL="http://localhost:8787/health"
-WEB_URL="http://localhost:5173"
-SIMULATOR_URL="http://localhost:5173/simulator"
-EXTENSION_DIR="$ROOT/extension"
-EXTENSION_DIST_MANIFEST="$EXTENSION_DIR/dist/manifest.json"
+# Everything the app needs lives inside its own bundle now - no more
+# walking up to find a sibling repo checkout (that assumption broke the
+# moment this .app needed to be a standalone download in its own right,
+# same reasoning as MainForm.cs dropping FindRepoRoot() on Windows).
+RESOURCES_DIR="$(cd "$SCRIPT_DIR/../Resources" && pwd)"
+SERVER_SCRIPT="$RESOURCES_DIR/server.mjs"
+WEB_DIST_DIR="$RESOURCES_DIR/web-dist"
+SERVER_DATA_DIR="$RESOURCES_DIR/data"
+SERVER_ENV_EXAMPLE_PATH="$RESOURCES_DIR/.env.example"
+PORT=8787
+HEALTH_URL="http://localhost:$PORT/health"
+SIMULATOR_URL="http://localhost:$PORT/simulator"
 
 # ~/Library/Application Support is the standard per-user config location on
-# macOS - the direct analogue of the Windows launcher's %APPDATA%\MarketPane.
-# Config is a small sourceable shell file, not JSON: bash has no built-in
-# JSON parser, and depending on jq (not preinstalled on macOS) or python3
-# (prompts an Xcode Command Line Tools install if missing) for a two-field
-# config is not worth the fragility. This file is only ever written by
-# save_browser_config below, never from untrusted input.
+# macOS - the direct analogue of the Windows launcher's %LOCALAPPDATA%\MarketPane.
+# Used for the one thing that must be writable and must survive an app
+# update (the user's own .env with their Gemini key) plus logs and the
+# linked-browser config - never for the read-only bundled runtime itself,
+# which lives inside Resources/ above and is never written to.
 CONFIG_DIR="$HOME/Library/Application Support/MarketPane"
 CONFIG_PATH="$CONFIG_DIR/config.sh"
 LOG_DIR="$CONFIG_DIR/logs"
 SERVER_LOG="$LOG_DIR/server.log"
-WEB_LOG="$LOG_DIR/web.log"
+SERVER_ENV_PATH="$CONFIG_DIR/.env"
 
 mkdir -p "$LOG_DIR"
 
@@ -84,12 +92,29 @@ EOF
   rm -f "$script"
 }
 
-# --- first-run setup: dependencies, extension build, .env ------------------
+# --- embedded Node runtime ---------------------------------------------
 
-# Copies server/.env.example -> server/.env the first time only - never
-# overwrites a real, already-configured .env. The server starts fine on the
-# placeholder key (see server/src/gemini.ts): only the Gemini-powered
-# features (translate, context, AI trade-rationale grading) need a real
+# Picks the node binary matching this Mac's own CPU architecture - both
+# Apple Silicon (arm64) and Intel (x86_64) builds ship inside the bundle
+# since there is no way to know which one a given download will run on.
+# `uname -m` is the standard, always-available way to ask macOS which
+# architecture it's actually running as (not which one the *app* was built
+# for - relevant on Apple Silicon Macs running under Rosetta, where this
+# still correctly resolves to the real arm64 hardware).
+resolve_node_binary() {
+  local arch
+  arch="$(uname -m)"
+  if [ "$arch" = "arm64" ]; then
+    printf '%s' "$RESOURCES_DIR/node-darwin-arm64"
+  else
+    printf '%s' "$RESOURCES_DIR/node-darwin-x64"
+  fi
+}
+
+# Copies .env.example -> .env (in the writable config dir, not the
+# read-only bundle) the first time only - never overwrites a real,
+# already-configured .env. The server starts fine on the placeholder key
+# (see server/src/gemini.ts): only the Gemini-powered features need a real
 # one, added later at the user's own pace.
 ensure_server_env_file() {
   if [ -f "$SERVER_ENV_EXAMPLE_PATH" ] && [ ! -f "$SERVER_ENV_PATH" ]; then
@@ -97,57 +122,54 @@ ensure_server_env_file() {
   fi
 }
 
-# `npm install` for one workspace, run synchronously so the caller can rely
-# on node_modules existing once this returns 0. The one truly unavoidable
-# manual step this cannot remove is Node.js itself not being installed at
-# all - there is no safe way to silently install a system-wide runtime on
-# someone else's Mac, so that case gets a clear, actionable error instead
-# of a silent failure.
-install_dependencies() {
-  local work_dir="$1"
-  local label="$2"
+is_server_healthy() {
+  local response
+  response="$(curl -fsS -m 2 "$HEALTH_URL" 2>/dev/null)"
+  [[ "$response" == *'"ok":true'* ]]
+}
 
-  if ! command -v npm >/dev/null 2>&1; then
-    local msg
-    printf -v msg 'Node.js is not installed, so MarketPane cannot set up %s automatically.\n\nInstall Node.js (the LTS version) from https://nodejs.org, then reopen MarketPane.' "$label"
-    show_error "$msg"
+# Same shape as the Windows launcher's EnsureServerRunningAsync: already-
+# running check, background start of the embedded node binary against the
+# bundled server.mjs (no npm install, no node_modules - see
+# server/scripts/bundle-for-embed.mjs), then poll for up to 10s (20 x
+# 500ms) before giving up with a real error. Started via a `( cd ... )`
+# subshell so the cd never affects the rest of this script; nohup alone
+# (no explicit disown) is enough for the process to survive both this
+# subshell's exit and the launcher's own eventual exit.
+start_server_if_needed() {
+  if is_server_healthy; then return 0; fi
+
+  ensure_server_env_file
+
+  local node_bin
+  node_bin="$(resolve_node_binary)"
+  if [ ! -x "$node_bin" ]; then
+    show_error 'This MarketPane.app is missing its embedded Node.js runtime - it may not have downloaded completely.\n\nTry re-downloading MarketPane.app.'
     return 1
   fi
 
-  local install_log="$work_dir/npm-install.log"
-  local install_err_log="$work_dir/npm-install.err.log"
-  if ! (cd "$work_dir" && npm install >"$install_log" 2>"$install_err_log"); then
+  (
+    cd "$CONFIG_DIR" && \
+    PORT="$PORT" \
+    WEB_DIST_PATH="$WEB_DIST_DIR" \
+    SERVER_DATA_DIR="$SERVER_DATA_DIR" \
+    WEB_ORIGIN="http://localhost:$PORT" \
+    nohup "$node_bin" "$SERVER_SCRIPT" >"$SERVER_LOG" 2>&1 &
+  )
+
+  local attempts=0
+  while ! is_server_healthy && [ "$attempts" -lt 20 ]; do
+    sleep 0.5
+    attempts=$((attempts + 1))
+  done
+
+  if ! is_server_healthy; then
     local msg
-    printf -v msg 'Setting up %s failed (npm install did not succeed).\n\nSee:\n%s\n\nor run "npm install" inside %s yourself to see the live error.' "$label" "$install_err_log" "$work_dir"
+    printf -v msg 'The server did not come up after 10 seconds.\n\nLog: %s' "$SERVER_LOG"
     show_error "$msg"
     return 1
   fi
   return 0
-}
-
-# Builds extension/dist the first time only (checked via its manifest.json,
-# not just folder existence - a partial/failed prior build could leave the
-# folder present but empty). Loading it into the browser afterward still
-# needs one manual click at chrome://extensions - Chrome deliberately
-# requires that gesture for unpacked extensions, and no script can bypass
-# it, so this only removes the *build* step, not the load step.
-ensure_extension_built() {
-  if [ -f "$EXTENSION_DIST_MANIFEST" ]; then return 0; fi
-
-  if ! install_dependencies "$EXTENSION_DIR" "the browser extension"; then
-    return 1
-  fi
-
-  local build_log="$EXTENSION_DIR/npm-build.log"
-  local build_err_log="$EXTENSION_DIR/npm-build.err.log"
-  if ! (cd "$EXTENSION_DIR" && npm run build >"$build_log" 2>"$build_err_log"); then
-    local msg
-    printf -v msg 'Building the browser extension failed.\n\nSee:\n%s' "$build_err_log"
-    show_error "$msg"
-    return 1
-  fi
-
-  [ -f "$EXTENSION_DIST_MANIFEST" ]
 }
 
 # --- browser detection -----------------------------------------------------
@@ -241,7 +263,7 @@ pick_browser() {
   script="$(mktemp /tmp/marketpane-picker.XXXXXX.applescript)"
   cat >"$script" <<EOF
 set browserList to $applescript_items
-set chosen to choose from list browserList with title "MarketPane" with prompt "Choose the browser MarketPane should open. The Jargon Buster extension must be loaded separately (once) in this browser via its extensions page." default items {item 1 of browserList}
+set chosen to choose from list browserList with title "MarketPane" with prompt "Choose the browser MarketPane should open."  default items {item 1 of browserList}
 if chosen is false then
 	return "CANCELLED"
 else
@@ -265,80 +287,6 @@ EOF
   done <<<"$browsers_raw"
 
   return 1
-}
-
-# --- server / web dev server -----------------------------------------------
-
-is_server_healthy() {
-  local response
-  response="$(curl -fsS -m 2 "$HEALTH_URL" 2>/dev/null)"
-  [[ "$response" == *'"ok":true'* ]]
-}
-
-is_web_healthy() {
-  local status
-  status="$(curl -s -o /dev/null -m 2 -w '%{http_code}' "$WEB_URL" 2>/dev/null)"
-  [ "$status" = "200" ]
-}
-
-# Same shape as the Windows launcher's Start-ServerIfNeeded: already-running
-# check, missing-deps message, background start, then poll for up to 10s
-# (20 x 500ms) before giving up with a real error. Started via a `( cd ... )`
-# subshell so the cd never affects the rest of this script; nohup alone
-# (no explicit disown) is enough for the process to survive both this
-# subshell's exit and the launcher's own eventual exit.
-start_server_if_needed() {
-  if is_server_healthy; then return 0; fi
-
-  ensure_server_env_file
-
-  if [ ! -x "$TSX_BIN" ]; then
-    if ! install_dependencies "$SERVER_DIR" "the server"; then
-      return 1
-    fi
-  fi
-
-  (cd "$SERVER_DIR" && nohup "$TSX_BIN" src/index.ts >"$SERVER_LOG" 2>&1 &)
-
-  local attempts=0
-  while ! is_server_healthy && [ "$attempts" -lt 20 ]; do
-    sleep 0.5
-    attempts=$((attempts + 1))
-  done
-
-  if ! is_server_healthy; then
-    local msg
-    printf -v msg 'The server did not come up after 10 seconds. Check server/.env has a valid GEMINI_API_KEY, or run "npm run dev" inside server/ directly to see the error.\n\nLog: %s' "$SERVER_LOG"
-    show_error "$msg"
-    return 1
-  fi
-  return 0
-}
-
-start_web_if_needed() {
-  if is_web_healthy; then return 0; fi
-
-  if [ ! -x "$VITE_BIN" ]; then
-    if ! install_dependencies "$WEB_DIR" "the web app"; then
-      return 1
-    fi
-  fi
-
-  (cd "$WEB_DIR" && nohup "$VITE_BIN" >"$WEB_LOG" 2>&1 &)
-
-  local attempts=0
-  while ! is_web_healthy && [ "$attempts" -lt 20 ]; do
-    sleep 0.5
-    attempts=$((attempts + 1))
-  done
-
-  if ! is_web_healthy; then
-    local msg
-    printf -v msg 'The web app did not come up after 10 seconds. Run "npm run dev" inside web/ directly to see the error.\n\nLog: %s' "$WEB_LOG"
-    show_error "$msg"
-    return 1
-  fi
-  return 0
 }
 
 # --- browser launch ----------------------------------------------------
@@ -377,18 +325,6 @@ open_browser() {
   return 0
 }
 
-# Always a normal window, never app-mode - for internal browser pages like
-# chrome://extensions, which are not guaranteed to render correctly inside
-# a borderless --app= window the way a normal page does, and gain nothing
-# from being borderless anyway.
-open_browser_normal_window() {
-  local url="$1"
-  if [ -z "${BROWSER_PATH:-}" ] || [ ! -d "$BROWSER_PATH" ]; then
-    return 1
-  fi
-  open -a "$BROWSER_PATH" "$url" 2>/dev/null
-}
-
 # --- status window (AppleScript dialog loop) -------------------------------
 
 # A persistent WinForms status window with live-updating text has no
@@ -403,7 +339,7 @@ show_status_and_wait() {
   local button
   local message
   while true; do
-    printf -v message 'Linked browser: %s\n\nRunning: localhost:8787 (server), localhost:5173 (app)' "$BROWSER_NAME"
+    printf -v message 'Linked browser: %s\n\nRunning: localhost:%s' "$BROWSER_NAME" "$PORT"
     script="$(mktemp /tmp/marketpane-status.XXXXXX.applescript)"
     cat >"$script" <<EOF
 display dialog "$message" with title "MarketPane" buttons {"Change Linked Browser", "Quit", "Open in Browser"} default button "Open in Browser"
@@ -430,6 +366,9 @@ EOF
 main() {
   load_browser_config
 
+  local is_first_run=0
+  [ ! -f "$CONFIG_PATH" ] && is_first_run=1
+
   if [ -z "$BROWSER_PATH" ] || [ ! -d "$BROWSER_PATH" ]; then
     if ! pick_browser; then
       exit 0
@@ -437,39 +376,14 @@ main() {
     load_browser_config
   fi
 
-  # Checked before any of the three setup steps below, so this reflects
-  # "was anything missing when MarketPane opened" - used after everything
-  # succeeds to decide whether this is a genuine first run worth a
-  # one-time welcome message, not just every-launch noise.
-  local is_first_run=0
-  if [ ! -x "$TSX_BIN" ] || [ ! -x "$VITE_BIN" ] || [ ! -f "$EXTENSION_DIST_MANIFEST" ]; then
-    is_first_run=1
-  fi
-
   if ! start_server_if_needed; then
     exit 1
   fi
 
-  if ! start_web_if_needed; then
-    exit 1
-  fi
-
-  local extension_ready=1
-  ensure_extension_built || extension_ready=0
-
   open_browser "$SIMULATOR_URL"
 
-  if [ "$is_first_run" = "1" ] && [ "$extension_ready" = "1" ]; then
-    local extensions_label="On the page that is about to open, turn on Developer mode, click \\\"Load unpacked\\\", and select"
-    local extensions_url="chrome://extensions"
-    if [ "${BROWSER_IS_CHROMIUM:-0}" != "1" ]; then
-      extensions_label="On the page that is about to open, click \\\"Load Temporary Add-on\\\" and select the manifest.json inside"
-      extensions_url="about:debugging#/runtime/this-firefox"
-    fi
-    local msg
-    printf -v msg 'MarketPane installed its dependencies and built the browser extension for you - almost everything is ready.\n\nOne thing still needs a manual step (browser security requires it - no script can do this part):\n\n%s:\n%s/dist\n\nOptional: for the AI-powered explain/translate features, add a real Gemini API key to server/.env - the placeholder key lets everything else run fine without it.' "$extensions_label" "$EXTENSION_DIR"
-    show_info "$msg"
-    open_browser_normal_window "$extensions_url"
+  if [ "$is_first_run" = "1" ]; then
+    show_info 'MarketPane is ready - Decision Replay, the Simulator, Tax Understanding, the Sandbox, and Learn are all running in the window that just opened.\n\nOptional: for the AI-powered explain/translate features, add a real Gemini API key to ~/Library/Application Support/MarketPane/.env - the placeholder key lets everything else run fine without one.'
   fi
 
   show_status_and_wait
