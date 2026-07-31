@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto'
 import type { StockContextRequest, TranslateRequest } from '../../shared/types.js'
 
 const SYSTEM_PROMPT = `You are the financial translator. Your job is to explain complicated finance and
@@ -62,8 +61,24 @@ const MAX_OUTPUT_TOKENS = 1000
  * this codebase uses dangerouslySetInnerHTML/innerHTML; all output goes
  * through React text children, which auto-escape).
  */
+// No node:crypto dependency (kept portable - this same file also runs
+// inside the Android app's JS bridge, see server/src/mobileDispatch.ts,
+// which has no Node built-ins available). The token only needs to be
+// unpredictable to an attacker crafting page content in advance, not
+// cryptographically secure - it is a prompt-fencing nonce, never an auth
+// credential.
+function randomHexToken(byteLength: number): string {
+  let token = ''
+  for (let i = 0; i < byteLength; i++) {
+    token += Math.floor(Math.random() * 256)
+      .toString(16)
+      .padStart(2, '0')
+  }
+  return token
+}
+
 export function fenceUntrusted(label: string, content: string): { instruction: string; block: string } {
-  const token = randomBytes(8).toString('hex')
+  const token = randomHexToken(8)
   const open = `<<<${label}_${token}>>>`
   const close = `<<<END_${label}_${token}>>>`
   return {
