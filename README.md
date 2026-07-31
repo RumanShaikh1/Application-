@@ -12,14 +12,23 @@ mobile/     Expo/React Native app - Decision Replay, same core loop, native iOS/
 shared/     TypeScript types used by all client workspaces
 launcher/   standalone MarketPane.exe-style desktop app (WinForms/PowerShell) that links a browser and starts the server
             double-click launcher/MarketPane.bat to run it - see "Getting started (Windows)" below
-            launcher/MarketPane.Desktop/ is a single-window alternative (build it yourself, see below) -
-            no separate browser, but the Jargon Buster extension can't run inside it
+            launcher/MarketPane.Desktop is a single-window, single-exe alternative with everything
+            (a portable Node.js runtime, the server, the built web app) embedded inside it - no
+            separate browser, no Node.js install, nothing else needed at all; download the exe from
+            this repo's Releases page (see "Getting started (Windows)" below) - the Jargon Buster
+            extension is the one thing that can't run inside it (see below)
             launcher/mac/ is the macOS equivalent (a MarketPane.app bundle) - see "Running on macOS" below
 ```
 
 ## Getting started (Windows)
 
-**Install Node.js first** (one-time, unavoidable): https://nodejs.org, the LTS version. That's the only real prerequisite - everything else below is one double-click.
+There are two ways to run this on Windows - pick based on whether you want the browser extension too.
+
+**Want the single self-contained app, and don't need the browser extension? This is the simplest option - skip straight to "Prefer one single app window" below.** Nothing to install first, not even Node.js - just download and double-click.
+
+**Want the Jargon Buster browser extension too?** Use `MarketPane.bat` instead (below) - it needs Node.js, since it runs the extension's build step and a real browser.
+
+**Install Node.js first** (one-time, unavoidable for this path only): https://nodejs.org, the LTS version.
 
 **Then just double-click `launcher\MarketPane.bat`.** No PowerShell command, no shortcut to set up first, no terminal - `.bat` files run directly on double-click in Windows, unlike `.ps1` files (which Windows opens in Notepad instead of running, for security reasons). `MarketPane.bat` is a two-line wrapper that finds its own folder automatically and hands off to `MarketPane.ps1` - it works from wherever you extracted the project, with nothing to configure first.
 
@@ -33,11 +42,15 @@ Every time after that, double-clicking `MarketPane.bat` just opens straight to t
 
 **Optional - a Desktop icon:** right-click `launcher\MarketPane.bat` in File Explorer → **Send to** → **Desktop (create shortcut)**. That's a normal Windows feature, not a project script - no terminal needed. (`launcher\create-shortcut.ps1` also still exists and makes a nicer-looking icon using the real app icon instead of the generic `.bat` icon, if you'd rather run that once from PowerShell - see "Manual run" below for how.)
 
-**Prefer one single app window instead of a separate browser?** `launcher/MarketPane.Desktop/` is a compiled WinForms + WebView2 app that embeds the whole web app in one real window - no browser tab, no address bar, and genuinely one `.exe` (`dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true` from inside that folder produces a single ~150MB file that needs nothing but Node.js pre-installed - not even the .NET runtime). It has the same auto-install behavior as `MarketPane.bat` above. The trade-off: the Jargon Buster browser extension can't be loaded into an embedded WebView2 window the way it can into a real Chrome/Edge tab, so this option is Decision Replay/Simulator/Tax Understanding only, not the extension. Requires the .NET 8 SDK to build (`dotnet build -c Release`, or the publish command above for the single-file version) - it isn't pre-built and committed here, since a build depends on your exact machine/architecture and the self-contained version is ~150MB, over GitHub's 100MB push limit.
+**Prefer one single app window instead of a separate browser?** Download **[MarketPane.Desktop.exe](https://github.com/RumanShaikh1/Application-/releases/download/desktop-v1.0.0/MarketPane.Desktop.exe)** (~107MB, also under this repo's "Releases" tab) and double-click it - genuinely nothing else to install, not Node.js, not the .NET runtime, not this repo. A portable Node.js runtime, the bundled server, the built web app, and its data fixtures are all embedded directly inside the exe itself: the first launch extracts them once to `%LOCALAPPDATA%\MarketPane` (~100MB, a few seconds, shows a "Setting up MarketPane" status message), and every launch after that is instant. It's a GitHub Release asset rather than a file committed to the repo because it's over GitHub's 100MB per-push file-size limit.
 
-Add a real key to `server/.env` whenever you want the AI-powered explain/translate features - a placeholder ships by default so the rest of the app runs fine without one.
+It embeds the whole web app in one real window - no browser tab, no address bar. If the WebView2 Runtime isn't already on your machine (it ships with Windows 10/11 in almost all cases, so this is rare), it downloads and silently installs Microsoft's official small bootstrapper for it automatically - a real Windows security (UAC) prompt during that specific step is expected, not a bug. You may also see a blue SmartScreen warning on first launch since the exe isn't code-signed - click **"More info"** → **"Run anyway"**, same as `MarketPane.bat` above. The trade-off: the Jargon Buster browser extension can't be loaded into an embedded WebView2 window the way it can into a real Chrome/Edge tab, so this option is Decision Replay/Simulator/Tax Understanding/Sandbox/Learn only, not the extension. Closing the window also stops its embedded server - nothing lingers in Task Manager afterward, unlike the `.bat` path below.
 
-Both the API server and the `web/` dev server keep running in the background after you close the app/browser, so relaunching later is instant. To stop them, end the `node`/`tsx` (API) and `node`/`vite` (`web/`) processes in Task Manager.
+(To rebuild it yourself after editing the source: `cd server && npm run bundle:embed`, `cd web && npm run build`, download a portable win-x64 Node.js build from https://nodejs.org and point `MARKETPANE_PORTABLE_NODE_EXE` at its `node.exe`, then `node launcher/MarketPane.Desktop/scripts/pack-embedded-runtime.mjs` to produce `launcher/MarketPane.Desktop/embed/runtime.zip`, then `dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true` from inside `launcher/MarketPane.Desktop/` - needs the .NET 8 SDK. Upload the resulting exe as a new GitHub Release asset rather than committing it - it's well over the 100MB push limit.)
+
+Add a real key to `server/.env` (or, for the single-exe path, `%LOCALAPPDATA%\MarketPane\runtime\.env`) whenever you want the AI-powered explain/translate features - a placeholder ships by default so the rest of the app runs fine without one.
+
+Only the `.bat`/browser path leaves background processes running: the API server and the `web/` dev server it starts keep running after you close the app/browser, so relaunching later is instant. To stop them, end the `node`/`tsx` (API) and `node`/`vite` (`web/`) processes in Task Manager. `MarketPane.Desktop.exe` doesn't have this quirk - it stops its own embedded server when its window closes.
 
 ## Manual run (skipping the launcher)
 

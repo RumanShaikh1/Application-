@@ -1,30 +1,39 @@
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Reflection;
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
 namespace MarketPane.Desktop;
 
 /// <summary>
-/// Compiled replacement for the old MarketPane.ps1 launcher: instead of
-/// starting the local server and opening a separate system browser, this
-/// starts both the API server and the web app's dev server, then embeds a
-/// real Chromium engine (WebView2 - the same engine as modern Edge) inside
-/// this one window. Everything (Decision Replay, the Simulator, Tax
-/// Understanding) runs inside the application itself, with full internet
-/// access, not a separate browser process.
+/// A genuinely zero-prerequisite MarketPane: everything it needs to run -
+/// a portable Node.js runtime, the bundled server, the built web app, and
+/// its data fixtures - is embedded directly in this .exe (see
+/// scripts/pack-embedded-runtime.mjs and the EmbeddedResource entry in
+/// MarketPane.Desktop.csproj). No system-installed Node.js, no `npm
+/// install`, no separate repo checkout on the machine this runs on - the
+/// first launch extracts that embedded runtime once, then every launch
+/// after just starts the already-extracted server and shows it in a real
+/// embedded Chromium engine (WebView2 - the same engine as modern Edge).
 /// </summary>
 public class MainForm : Form
 {
-    private static readonly string RepoRoot = FindRepoRoot();
-    private static readonly string ServerDir = Path.Combine(RepoRoot, "server");
-    private static readonly string WebDir = Path.Combine(RepoRoot, "web");
-    private static readonly string TsxPath = Path.Combine(ServerDir, "node_modules", ".bin", "tsx.cmd");
-    private static readonly string VitePath = Path.Combine(WebDir, "node_modules", ".bin", "vite.cmd");
-    private static readonly string ServerEnvPath = Path.Combine(ServerDir, ".env");
-    private static readonly string ServerEnvExamplePath = Path.Combine(ServerDir, ".env.example");
+    private static readonly string AppDataDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MarketPane");
+    private static readonly string RuntimeDir = Path.Combine(AppDataDir, "runtime");
+    private static readonly string RuntimeVersionMarkerPath = Path.Combine(RuntimeDir, ".runtime-version");
+    private static readonly string NodeExePath = Path.Combine(RuntimeDir, "node.exe");
+    private static readonly string ServerScriptPath = Path.Combine(RuntimeDir, "server.mjs");
+    private static readonly string WebDistPath = Path.Combine(RuntimeDir, "web-dist");
+    private static readonly string ServerDataDir = Path.Combine(RuntimeDir, "data");
+    private static readonly string ServerEnvPath = Path.Combine(RuntimeDir, ".env");
+    private static readonly string ServerEnvExamplePath = Path.Combine(RuntimeDir, ".env.example");
 
+    private const string RuntimeResourceName = "MarketPane.Desktop.runtime.zip";
+    private const int ServerPort = 8787;
     private const string ServerHealthUrl = "http://localhost:8787/health";
-    private const string WebHealthUrl = "http://localhost:5173/";
-    private const string SimulatorUrl = "http://localhost:5173/simulator";
+    private const string SimulatorUrl = "http://localhost:8787/simulator";
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(2) };
 
@@ -32,6 +41,7 @@ public class MainForm : Form
     private readonly Label _statusLabel;
     private readonly Button _retryButton;
     private readonly WebView2 _webView;
+    private Process? _serverProcess;
 
     public MainForm()
     {
@@ -40,8 +50,17 @@ public class MainForm : Form
         Height = 900;
         StartPosition = FormStartPosition.CenterScreen;
 
-        var iconPath = Path.Combine(RepoRoot, "launcher", "assets", "app-icon.ico");
-        if (File.Exists(iconPath)) Icon = new Icon(iconPath);
+        try
+        {
+            // Pulled straight from this exe's own Win32 resources (set via
+            // <ApplicationIcon> in the csproj) instead of a sibling file on
+            // disk - there's no repo checkout to find one in anymore.
+            Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        }
+        catch
+        {
+            // Cosmetic only - falls back to the default WinForms icon.
+        }
 
         _statusLabel = new Label
         {
@@ -76,21 +95,12 @@ public class MainForm : Form
         Controls.Add(_webView);
         Controls.Add(_statusPanel);
 
-        Load += async (_, _) => await StartAsync();
-    }
+        // The embedded server has no reason to keep running once this
+        // window closes - without this, every launch would leave an
+        // orphaned node.exe behind, silently accumulating across runs.
+        FormClosed += (_, _) => StopServerProcess();
 
-    private static string FindRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var hasServer = File.Exists(Path.Combine(dir.FullName, "server", "package.json"));
-            var hasWeb = File.Exists(Path.Combine(dir.FullName, "web", "package.json"));
-            if (hasServer && hasWeb) return dir.FullName;
-            dir = dir.Parent;
-        }
-        throw new DirectoryNotFoundException(
-            $"Could not locate the MarketPane repo root (a directory containing both server/package.json and web/package.json) above {AppContext.BaseDirectory}.");
+        Load += async (_, _) => await StartAsync();
     }
 
     private async Task StartAsync()
@@ -99,13 +109,14 @@ public class MainForm : Form
         _statusPanel.Visible = true;
         _webView.Visible = false;
 
+        if (!await EnsureEmbeddedRuntimeAsync()) return;
+
         EnsureServerEnvFile();
 
-        SetStatus("Starting the local server...");
-        if (!await EnsureHealthyAsync(ServerHealthUrl, TsxPath, ServerDir, "src/index.ts", "server")) return;
+        SetStatus("Starting MarketPane...");
+        if (!await EnsureServerRunningAsync()) return;
 
-        SetStatus("Starting the web app...");
-        if (!await EnsureHealthyAsync(WebHealthUrl, VitePath, WebDir, null, "web")) return;
+        if (!await EnsureWebView2RuntimeAsync()) return;
 
         SetStatus("Loading...");
         try
@@ -117,55 +128,198 @@ public class MainForm : Form
         }
         catch (Exception ex)
         {
-            ShowError($"Could not start the embedded browser - is the WebView2 Runtime installed? (It ships with Windows 10/11 in almost all cases.)\n\n{ex.Message}");
+            ShowError($"Could not start the embedded browser, even though the WebView2 Runtime was detected.\n\n{ex.Message}");
         }
     }
 
-    private async Task<bool> EnsureHealthyAsync(string healthUrl, string exePath, string workingDir, string? scriptArg, string label)
+    /// <summary>
+    /// Extracts the embedded node.exe + bundled server + built web app +
+    /// data fixtures to %LOCALAPPDATA%\MarketPane\runtime the first time
+    /// MarketPane runs - the one-time cost of not needing Node.js, npm, or
+    /// this app's own source checkout present on the machine at all. A
+    /// version marker (this assembly's own file version) means a future
+    /// release that ships a newer embedded runtime re-extracts instead of
+    /// silently running a stale bundled server against a newer web build,
+    /// or vice versa. Re-extraction never touches a real .env the user has
+    /// already added a Gemini key to - only .env.example ships in the zip,
+    /// .env itself is never part of it (see EnsureServerEnvFile).
+    /// </summary>
+    private async Task<bool> EnsureEmbeddedRuntimeAsync()
     {
-        if (await IsHealthyAsync(healthUrl)) return true;
-
-        if (!File.Exists(exePath))
+        var currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0";
+        if (File.Exists(NodeExePath) && File.Exists(ServerScriptPath) && File.Exists(RuntimeVersionMarkerPath)
+            && File.ReadAllText(RuntimeVersionMarkerPath) == currentVersion)
         {
-            SetStatus($"Setting up {label} for the first time (installing dependencies - this can take a minute)...");
-            if (!await InstallDependenciesAsync(workingDir, label)) return false;
+            return true;
         }
+
+        SetStatus("Setting up MarketPane (one-time, ~100MB)...");
+        try
+        {
+            await Task.Run(() =>
+            {
+                Directory.CreateDirectory(RuntimeDir);
+                using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(RuntimeResourceName)
+                    ?? throw new InvalidOperationException($"Embedded resource \"{RuntimeResourceName}\" was not found in this build.");
+                using var archive = new ZipArchive(resourceStream, ZipArchiveMode.Read);
+                archive.ExtractToDirectory(RuntimeDir, overwriteFiles: true);
+                File.WriteAllText(RuntimeVersionMarkerPath, currentVersion);
+            });
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Could not set up MarketPane's runtime files:\n\n{ex.Message}");
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// The WebView2 Runtime ships pre-installed on almost all Windows 10/11
+    /// machines (bundled with Windows, kept current by Edge's own updater),
+    /// but is not strictly guaranteed everywhere (locked-down enterprise
+    /// images, some Windows N editions, older builds). Rather than just
+    /// erroring if it's missing, this checks for it via the documented
+    /// GetAvailableBrowserVersionString probe and, if absent, downloads and
+    /// silently runs Microsoft's official "Evergreen Bootstrapper" (the
+    /// small ~2MB installer Microsoft explicitly publishes for exactly this
+    /// use case - see "Distribute your app and the WebView2 Runtime" in
+    /// Microsoft's WebView2 docs) rather than leaving the user to find and
+    /// install it by hand. The bootstrapper's own manifest requests
+    /// elevation, so UseShellExecute=true here is required for Windows to
+    /// show the real UAC prompt - that prompt appearing is expected, not a
+    /// bug, on any machine that genuinely needs this step.
+    ///
+    /// NOT exercised end-to-end: the Runtime is already present on the
+    /// machine this was written on, so only the "already installed" branch
+    /// (the GetAvailableBrowserVersionString call succeeding) has actually
+    /// been run. The download-and-install branch is reasoned from
+    /// Microsoft's documented bootstrapper contract, not verified live.
+    /// </summary>
+    private async Task<bool> EnsureWebView2RuntimeAsync()
+    {
+        const string bootstrapperUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+        const string manualDownloadUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
+
+        try
+        {
+            var version = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            if (!string.IsNullOrEmpty(version)) return true;
+        }
+        catch
+        {
+            // Treated as "not found" below regardless of the specific
+            // exception - EnsureCoreWebView2Async will still surface a real
+            // error afterward if installing doesn't actually fix it.
+        }
+
+        SetStatus("Installing the WebView2 Runtime (one-time - a Windows security prompt may appear)...");
+        var bootstrapperPath = Path.Combine(Path.GetTempPath(), "MicrosoftEdgeWebview2Setup.exe");
+        try
+        {
+            using var http = new HttpClient();
+            var bytes = await http.GetByteArrayAsync(bootstrapperUrl);
+            await File.WriteAllBytesAsync(bootstrapperPath, bytes);
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = bootstrapperPath,
+                Arguments = "/silent /install",
+                UseShellExecute = true
+            };
+            using var process = Process.Start(psi)!;
+            await process.WaitForExitAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Could not automatically install the WebView2 Runtime.\n\nInstall it manually from:\n{manualDownloadUrl}\n\nThen reopen MarketPane.\n\n{ex.Message}");
+            return false;
+        }
+
+        try
+        {
+            var version = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            if (!string.IsNullOrEmpty(version)) return true;
+        }
+        catch
+        {
+            // Falls through to the same error below.
+        }
+
+        ShowError($"The WebView2 Runtime still isn't detected after attempting to install it.\n\nInstall it manually from:\n{manualDownloadUrl}\n\nThen reopen MarketPane.");
+        return false;
+    }
+
+    /// <summary>
+    /// Starts the already-extracted, bundled server (node.exe server.mjs -
+    /// no npm, no node_modules, nothing to install) and waits for it to
+    /// report healthy. PORT/WEB_DIST_PATH/SERVER_DATA_DIR point it at the
+    /// extracted runtime folder explicitly rather than relying on any
+    /// relative-path fallback in the bundle (see server/src/dataDir.ts and
+    /// the web-dist block in server/src/index.ts).
+    /// </summary>
+    private async Task<bool> EnsureServerRunningAsync()
+    {
+        if (await IsHealthyAsync(ServerHealthUrl)) return true;
 
         try
         {
             var psi = new ProcessStartInfo
             {
-                FileName = exePath,
-                WorkingDirectory = workingDir,
+                FileName = NodeExePath,
+                WorkingDirectory = RuntimeDir,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            if (scriptArg is not null) psi.ArgumentList.Add(scriptArg);
-            Process.Start(psi);
+            psi.ArgumentList.Add(ServerScriptPath);
+            psi.Environment["PORT"] = ServerPort.ToString();
+            psi.Environment["WEB_DIST_PATH"] = WebDistPath;
+            psi.Environment["SERVER_DATA_DIR"] = ServerDataDir;
+            // The packaged app serves the web app and the API from the same
+            // origin (this port) by design - the web app's own fetch() calls
+            // to its own API still carry an Origin header (see the
+            // /api-scoped CORS comment in server/src/index.ts), so that
+            // origin needs to be in the allowlist. Set explicitly rather
+            // than relying on .env's WEB_ORIGIN=localhost:5173 default,
+            // which is for the separate-dev-server case only. dotenv never
+            // overrides an already-set process env var, so this always wins
+            // over whatever's in the extracted .env.
+            psi.Environment["WEB_ORIGIN"] = $"http://localhost:{ServerPort}";
+            _serverProcess = Process.Start(psi);
         }
         catch (Exception ex)
         {
-            ShowError($"Could not start the {label}:\n\n{ex.Message}");
+            ShowError($"Could not start the local server:\n\n{ex.Message}");
             return false;
         }
 
         for (var attempt = 0; attempt < 20; attempt++)
         {
-            if (await IsHealthyAsync(healthUrl)) return true;
+            if (await IsHealthyAsync(ServerHealthUrl)) return true;
             await Task.Delay(500);
         }
 
-        ShowError($"The {label} didn't come up after 10 seconds. Run 'npm run dev' inside {label}/ directly to see the error.");
+        ShowError("The local server didn't come up after 10 seconds.");
         return false;
     }
 
+    private void StopServerProcess()
+    {
+        try
+        {
+            if (_serverProcess is { HasExited: false }) _serverProcess.Kill(entireProcessTree: true);
+        }
+        catch
+        {
+            // Best effort - the OS reclaims the process either way once this app exits.
+        }
+    }
+
     /// <summary>
-    /// Copies server/.env.example -> server/.env the first time only - never
-    /// overwrites a real, already-configured .env. The server starts fine on
-    /// the placeholder key (see server/src/gemini.ts): only the Gemini-powered
-    /// features need a real one, added later at the user's own pace. Mirrors
-    /// Ensure-ServerEnvFile in launcher/MarketPane.ps1 and
-    /// ensure_server_env_file in launcher/mac/.../MarketPane.
+    /// Copies .env.example -> .env the first time only - never overwrites a
+    /// real, already-configured .env. The server starts fine on the
+    /// placeholder key (see server/src/gemini.ts): only the Gemini-powered
+    /// features need a real one, added later at the user's own pace.
     /// </summary>
     private static void EnsureServerEnvFile()
     {
@@ -173,81 +327,6 @@ public class MainForm : Form
         {
             File.Copy(ServerEnvExamplePath, ServerEnvPath);
         }
-    }
-
-    /// <summary>
-    /// `npm install` for one workspace, run synchronously (awaited) so the
-    /// caller can rely on node_modules existing once this returns true. The
-    /// one truly unavoidable manual step this can't remove is Node.js itself
-    /// not being installed at all - mirrors Install-Dependencies in
-    /// launcher/MarketPane.ps1 and install_dependencies in launcher/mac/.
-    /// </summary>
-    private async Task<bool> InstallDependenciesAsync(string workingDir, string label)
-    {
-        var npmPath = FindNpmOnPath();
-        if (npmPath is null)
-        {
-            ShowError($"Node.js isn't installed, so MarketPane can't set up {label} automatically.\n\nInstall Node.js (the LTS version) from https://nodejs.org, then reopen MarketPane.");
-            return false;
-        }
-
-        var installLog = Path.Combine(workingDir, "npm-install.log");
-        var installErrLog = Path.Combine(workingDir, "npm-install.err.log");
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = npmPath,
-                Arguments = "install",
-                WorkingDirectory = workingDir,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            using var process = Process.Start(psi)!;
-            var stdOutTask = process.StandardOutput.ReadToEndAsync();
-            var stdErrTask = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            await File.WriteAllTextAsync(installLog, await stdOutTask);
-            await File.WriteAllTextAsync(installErrLog, await stdErrTask);
-
-            if (process.ExitCode != 0)
-            {
-                ShowError($"Setting up {label} failed (npm install exited with code {process.ExitCode}).\n\nSee:\n{installErrLog}\n\nor run 'npm install' inside {workingDir} yourself to see the live error.");
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowError($"Could not run 'npm install' for {label}:\n\n{ex.Message}");
-            return false;
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// Resolves npm.cmd from PATH manually (Process.Start with
-    /// UseShellExecute=false does not consult PATHEXT the way a shell would),
-    /// checking PATHEXT's own extension list rather than hardcoding ".cmd" -
-    /// npm ships as npm.cmd on Windows in every install method observed
-    /// (installer, nvm-windows, winget), but this stays correct if that ever
-    /// changes.
-    /// </summary>
-    private static string? FindNpmOnPath()
-    {
-        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
-        var pathExt = Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD";
-        var extensions = pathExt.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var dir in pathEnv.Split(';', StringSplitOptions.RemoveEmptyEntries))
-        {
-            foreach (var ext in extensions)
-            {
-                var candidate = Path.Combine(dir, "npm" + ext);
-                if (File.Exists(candidate)) return candidate;
-            }
-        }
-        return null;
     }
 
     private static async Task<bool> IsHealthyAsync(string url)

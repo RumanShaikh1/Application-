@@ -2,6 +2,7 @@
 # always be stored with LF line endings - a CRLF shebang line
 # ("#!/bin/bash\r") fails to execute at all on macOS/Linux ("bad
 # interpreter" errors), regardless of the checking-out machine's
-# core.autocrlf setting.
+# core.autocrlf setting. Present on main too (not just mac-support) since
+# the two branches merge into each other regularly.
 *.sh text eol=lf
 launcher/mac/MarketPane.app/Contents/MacOS/MarketPane text eol=lf

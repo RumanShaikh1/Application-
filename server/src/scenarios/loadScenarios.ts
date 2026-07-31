@@ -1,10 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import type { Scenario } from '../../../shared/types.js'
+import { DATA_ROOT } from '../dataDir.js'
 
-const currentDir = dirname(fileURLToPath(import.meta.url))
-const SCENARIOS_DIR = join(currentDir, '../../data/scenarios')
+const SCENARIOS_DIR = join(DATA_ROOT, 'scenarios')
 
 function readScenarioFile(fileName: string): Scenario {
   const raw = readFileSync(join(SCENARIOS_DIR, fileName), 'utf-8')

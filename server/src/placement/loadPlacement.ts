@@ -1,10 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import type { PlacementMiniScenario } from '../../../shared/types.js'
+import { DATA_ROOT } from '../dataDir.js'
 
-const currentDir = dirname(fileURLToPath(import.meta.url))
-const PLACEMENT_DIR = join(currentDir, '../../data/placement')
+const PLACEMENT_DIR = join(DATA_ROOT, 'placement')
 
 function readMiniScenarioFile(fileName: string): PlacementMiniScenario {
   const raw = readFileSync(join(PLACEMENT_DIR, fileName), 'utf-8')

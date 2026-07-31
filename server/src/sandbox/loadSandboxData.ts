@@ -1,10 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import type { PriceWindow, SandboxFundamentalsSnapshot, StockAnalysis } from '../../../shared/types.js'
+import { DATA_ROOT } from '../dataDir.js'
 
-const currentDir = dirname(fileURLToPath(import.meta.url))
-const SANDBOX_DIR = join(currentDir, '../../data/sandbox')
+const SANDBOX_DIR = join(DATA_ROOT, 'sandbox')
 const ANALYSIS_DIR = join(SANDBOX_DIR, 'analysis')
 
 // Loaded once at startup, from local fixtures only - no live call, ever
