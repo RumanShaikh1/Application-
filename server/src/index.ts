@@ -1,5 +1,8 @@
 import 'dotenv/config'
 import { randomUUID } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import cors from 'cors'
 import { explainStockContext, translateTerm } from './gemini.js'
@@ -88,7 +91,18 @@ const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173'
 // forge this; curl or any raw HTTP client can). Bounding it to the actual
 // id shape is cheap, precise allowlisting instead of a prefix match.
 const CHROME_EXTENSION_ORIGIN = /^chrome-extension:\/\/[a-p]{32}$/
+// Scoped to /api only, not applied globally - this exists to stop an
+// arbitrary open webpage's fetch() from reaching the API, which is a real
+// risk only for the API surface itself. The packaged desktop/mobile shells
+// (see the static-serving block below) load the web app's own JS/CSS from
+// this same server with the <script crossorigin>/<link crossorigin>
+// attributes Vite adds by default - that makes the browser send an Origin
+// header and enforce CORS even for a same-origin request, so a blanket
+// app.use(cors(...)) here would 403 the app's own assets in every packaged
+// build (caught by testing an actual browser against it - curl doesn't send
+// an Origin header, so this false-passed under curl alone).
 app.use(
+  '/api',
   cors({
     origin: (origin, callback) => {
       if (!origin || CHROME_EXTENSION_ORIGIN.test(origin) || origin === WEB_ORIGIN) {
@@ -1174,6 +1188,26 @@ app.post(
     })
   })
 )
+
+// ---------------------------------------------------------------------------
+// Packaged web app (desktop/mobile shells)
+// ---------------------------------------------------------------------------
+// Local dev never hits this: the web app is reached through Vite's own dev
+// server on WEB_ORIGIN instead. This only activates for a packaged build
+// (MarketPane.Desktop, the macOS launcher, the Android shell), each of which
+// ships a `vite build` output alongside this bundled server and points
+// WEB_DIST_PATH at it (or, for a from-source checkout with `web/dist`
+// already built, this falls back to finding it next to the repo's own
+// web/ folder) - letting one process serve both the API and the app on a
+// single origin instead of requiring a second dev-server process.
+const currentDir = path.dirname(fileURLToPath(import.meta.url))
+const webDistPath = process.env.WEB_DIST_PATH || path.join(currentDir, '..', '..', 'web', 'dist')
+if (fs.existsSync(webDistPath)) {
+  app.use(express.static(webDistPath))
+  app.get(/^(?!\/api|\/health).*/, (_req, res) => {
+    res.sendFile(path.join(webDistPath, 'index.html'))
+  })
+}
 
 // No route matched - Express's own default here is an HTML "Cannot GET
 // /whatever" page, which breaks the "consistent JSON error shape across

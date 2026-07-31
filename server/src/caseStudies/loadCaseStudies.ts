@@ -1,10 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import type { CaseStudy, DifficultyLevel } from '../../../shared/types.js'
+import { DATA_ROOT } from '../dataDir.js'
 
-const currentDir = dirname(fileURLToPath(import.meta.url))
-const CASE_STUDIES_DIR = join(currentDir, '../../data/case-studies')
+const CASE_STUDIES_DIR = join(DATA_ROOT, 'case-studies')
 
 const LEVELS: DifficultyLevel[] = ['beginner', 'intermediate', 'advanced']
 
