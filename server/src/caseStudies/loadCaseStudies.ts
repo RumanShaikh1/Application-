@@ -1,14 +1,12 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
 import type { CaseStudy, DifficultyLevel } from '../../../shared/types.js'
-import { DATA_ROOT } from '../dataDir.js'
+import { listDataFiles, readDataFileText } from '../dataFs.js'
 
-const CASE_STUDIES_DIR = join(DATA_ROOT, 'case-studies')
+const CASE_STUDIES_DIR = 'case-studies'
 
 const LEVELS: DifficultyLevel[] = ['beginner', 'intermediate', 'advanced']
 
 function readCaseStudyFile(fileName: string): CaseStudy {
-  const raw = readFileSync(join(CASE_STUDIES_DIR, fileName), 'utf-8')
+  const raw = readDataFileText(`${CASE_STUDIES_DIR}/${fileName}`)
   const caseStudy = JSON.parse(raw) as CaseStudy
 
   if (!caseStudy.id || !caseStudy.maskedContext || !caseStudy.tiers?.length || !caseStudy.identity?.companyName) {
@@ -27,7 +25,7 @@ function readCaseStudyFile(fileName: string): CaseStudy {
 
 // Loaded once at startup, same pattern as scenarios/loadScenarios.ts and
 // placement/loadPlacement.ts - one I/O module, everything downstream is pure.
-const caseStudies: CaseStudy[] = readdirSync(CASE_STUDIES_DIR)
+const caseStudies: CaseStudy[] = listDataFiles(CASE_STUDIES_DIR)
   .filter((fileName) => fileName.endsWith('.json'))
   .map(readCaseStudyFile)
 

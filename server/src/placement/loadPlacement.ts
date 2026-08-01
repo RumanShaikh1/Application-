@@ -1,12 +1,10 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
 import type { PlacementMiniScenario } from '../../../shared/types.js'
-import { DATA_ROOT } from '../dataDir.js'
+import { listDataFiles, readDataFileText } from '../dataFs.js'
 
-const PLACEMENT_DIR = join(DATA_ROOT, 'placement')
+const PLACEMENT_DIR = 'placement'
 
 function readMiniScenarioFile(fileName: string): PlacementMiniScenario {
-  const raw = readFileSync(join(PLACEMENT_DIR, fileName), 'utf-8')
+  const raw = readDataFileText(`${PLACEMENT_DIR}/${fileName}`)
   const scenario = JSON.parse(raw) as PlacementMiniScenario
 
   if (!scenario.id || !scenario.context || !scenario.block?.readOptions?.length || !scenario.block?.factorOptions?.length) {
@@ -17,7 +15,7 @@ function readMiniScenarioFile(fileName: string): PlacementMiniScenario {
 
 // Loaded once at startup, same pattern as scenarios/loadScenarios.ts - one
 // I/O module, everything downstream is pure.
-const miniScenarios: PlacementMiniScenario[] = readdirSync(PLACEMENT_DIR)
+const miniScenarios: PlacementMiniScenario[] = listDataFiles(PLACEMENT_DIR)
   .filter((fileName) => fileName.endsWith('.json'))
   .map(readMiniScenarioFile)
 

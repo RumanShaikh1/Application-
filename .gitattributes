@@ -6,3 +6,4 @@
 # the two branches merge into each other regularly.
 *.sh text eol=lf
 launcher/mac/MarketPane.app/Contents/MacOS/MarketPane text eol=lf
+mobile/android/gradlew text eol=lf

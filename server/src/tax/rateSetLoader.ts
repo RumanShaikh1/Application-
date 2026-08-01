@@ -1,13 +1,11 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
 import type { TaxRateSet } from '../../../shared/types.js'
 import { compareIsoDates } from './holdingPeriod.js'
-import { DATA_ROOT } from '../dataDir.js'
+import { listDataFiles, readDataFileText } from '../dataFs.js'
 
-const TAX_RATES_DIR = join(DATA_ROOT, 'tax-rates')
+const TAX_RATES_DIR = 'tax-rates'
 
 function readRateSetFile(fileName: string): TaxRateSet {
-  const raw = readFileSync(join(TAX_RATES_DIR, fileName), 'utf-8')
+  const raw = readDataFileText(`${TAX_RATES_DIR}/${fileName}`)
   const rateSet = JSON.parse(raw) as TaxRateSet
 
   if (!rateSet.id || !rateSet.effectiveFrom || !rateSet.capitalGains || !rateSet.transactionCharges || !rateSet.businessIncome || !rateSet.lossSetOff) {
@@ -19,7 +17,7 @@ function readRateSetFile(fileName: string): TaxRateSet {
 // Loaded once at startup, sorted oldest-first by effective date - same
 // read-once pattern as scenarios/loadScenarios.ts. A future rate change is
 // a new file here, never a code change (see CLAUDE.md's Product Invariants).
-const rateSets: TaxRateSet[] = readdirSync(TAX_RATES_DIR)
+const rateSets: TaxRateSet[] = listDataFiles(TAX_RATES_DIR)
   .filter((fileName) => fileName.endsWith('.json'))
   .map(readRateSetFile)
   .sort((a, b) => compareIsoDates(a.effectiveFrom, b.effectiveFrom))

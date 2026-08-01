@@ -128,22 +128,11 @@ No tax rate, threshold, exemption, cess percentage, holding-period cutoff, or tr
 
 **Out of scope for v1:** broker statement import, live prices, user accounts, ITR generation/filing, and any non-equity asset class (property, gold, debt funds, NRI cases). See the CA-review warning above for the two known gaps in the equity math itself.
 
-## Decision Replay Mobile (`mobile/`)
+## MarketPane (Android) (`mobile/`)
 
-A native port of the same Decision Replay loop (Expo + React Native + NativeWind + React Navigation), for a phone instead of a browser tab. Same server, same API, same rubric scoring, same non-negotiable framing - a different client, not a different product.
+A genuinely zero-prerequisite Android app - not a native port, and not a subset. A single WebView loads the exact same `web/dist` build as desktop/macOS (Decision Replay, the Simulator, Tax Understanding, the Sandbox, Learn - full parity), served by a small native HTTP server (NanoHTTPD) that forwards `/api/*` requests to the same TypeScript grading/tax/sandbox functions `server/src/index.ts`'s Express routes call on desktop - reused unchanged, just called directly instead of through Express. There is no embedded Node.js runtime and no `nodejs-mobile-react-native` dependency (that library turned out to be unmaintained - see `mobile/README.md`'s "Why not nodejs-mobile-react-native" for the full reasoning). iOS is out of scope - building and signing an iOS app needs a real Mac and an Apple Developer account, neither available here.
 
-```
-cd mobile
-npm install
-```
-
-Then, when you're ready to actually run it:
-
-- **Android emulator:** set `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8787` (the emulator's alias for the host machine's `localhost` - plain `localhost` from inside the emulator means the emulator itself, not your PC) before `npm run android`.
-- **iOS simulator:** `localhost` works as-is (the simulator shares the host's network stack) - no env var needed.
-- **A physical phone:** set `EXPO_PUBLIC_API_BASE_URL` to your dev machine's LAN IP (e.g. `http://192.168.1.42:8787`) and make sure the phone is on the same network - a real device can't reach `localhost` on your PC.
-
-`npm run typecheck` runs `tsc --noEmit`. `shared/types.ts` is imported directly via relative paths (not the `@shared/*` alias `web/`/`extension/` use) since aliasing it through Metro needs an extra Babel plugin that couldn't be verified without actually running the bundler - see `mobile/metro.config.js`'s comment for the (separate, required either way) `watchFolders` fix that lets Metro see outside its project root at all.
+See **`mobile/README.md`** for the full architecture diagram, how to build a debug APK, and - important - which files need re-adding by hand if `expo prebuild --clean` is ever run again (this project has hand-written native code no Expo config plugin exists for yet).
 
 ## Verifying changes
 

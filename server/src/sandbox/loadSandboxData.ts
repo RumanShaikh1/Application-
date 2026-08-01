@@ -1,10 +1,8 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
 import type { PriceWindow, SandboxFundamentalsSnapshot, StockAnalysis } from '../../../shared/types.js'
-import { DATA_ROOT } from '../dataDir.js'
+import { listDataFiles, readDataFileText } from '../dataFs.js'
 
-const SANDBOX_DIR = join(DATA_ROOT, 'sandbox')
-const ANALYSIS_DIR = join(SANDBOX_DIR, 'analysis')
+const SANDBOX_DIR = 'sandbox'
+const ANALYSIS_DIR = `${SANDBOX_DIR}/analysis`
 
 // Loaded once at startup, from local fixtures only - no live call, ever
 // (see CLAUDE.md's Sandbox invariants). Fundamentals and prices are each a
@@ -12,12 +10,12 @@ const ANALYSIS_DIR = join(SANDBOX_DIR, 'analysis')
 // same "add a file, no code change" pattern as scenarios/loadScenarios.ts -
 // deliberately NOT every symbol needs one yet (see findStockAnalysis).
 
-const fundamentalsSnapshot: SandboxFundamentalsSnapshot = JSON.parse(readFileSync(join(SANDBOX_DIR, 'fundamentals.json'), 'utf-8'))
+const fundamentalsSnapshot: SandboxFundamentalsSnapshot = JSON.parse(readDataFileText(`${SANDBOX_DIR}/fundamentals.json`))
 if (!fundamentalsSnapshot.asOfDate || !fundamentalsSnapshot.windowId || !fundamentalsSnapshot.companies?.length) {
   throw new Error('server/data/sandbox/fundamentals.json is missing required fields.')
 }
 
-const priceWindow: PriceWindow = JSON.parse(readFileSync(join(SANDBOX_DIR, 'prices.json'), 'utf-8'))
+const priceWindow: PriceWindow = JSON.parse(readDataFileText(`${SANDBOX_DIR}/prices.json`))
 if (!priceWindow.id || !priceWindow.seriesBySymbol) {
   throw new Error('server/data/sandbox/prices.json is missing required fields.')
 }
@@ -41,7 +39,7 @@ export function assertFundamentalsMatchPriceWindow(fundamentals: SandboxFundamen
 assertFundamentalsMatchPriceWindow(fundamentalsSnapshot, priceWindow)
 
 function readAnalysisFile(fileName: string): StockAnalysis {
-  const raw = readFileSync(join(ANALYSIS_DIR, fileName), 'utf-8')
+  const raw = readDataFileText(`${ANALYSIS_DIR}/${fileName}`)
   const analysis = JSON.parse(raw) as StockAnalysis
   if (!analysis.symbol || !analysis.strengths?.length || !analysis.weaknesses?.length || !analysis.checkpoints?.length) {
     throw new Error(`Sandbox analysis fixture "${fileName}" is missing required fields.`)
@@ -50,7 +48,7 @@ function readAnalysisFile(fileName: string): StockAnalysis {
 }
 
 const analysisBySymbol = new Map<string, StockAnalysis>(
-  readdirSync(ANALYSIS_DIR)
+  listDataFiles(ANALYSIS_DIR)
     .filter((fileName) => fileName.endsWith('.json'))
     .map(readAnalysisFile)
     .map((analysis) => [analysis.symbol.toUpperCase(), analysis])

@@ -1,35 +1,25 @@
 {
   "name": "marketpane-mobile",
   "version": "1.0.0",
-  "description": "Decision Replay - native mobile app for the MarketPane trading-education platform",
+  "description": "MarketPane - Android app for the MarketPane trading-education platform. A single WebView loads the same web/ build used on desktop, backed by a tiny native HTTP server (see android/app/src/main/java/.../MarketPaneHttpServer.kt) that serves it and forwards /api/* requests to the JS dispatch bridge in src/bridge/ - no embedded Node.js runtime, full feature parity with desktop.",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.1.0",
-    "@react-navigation/bottom-tabs": "^7.2.0",
-    "@react-navigation/native": "^7.0.14",
-    "@react-navigation/native-stack": "^7.2.0",
     "expo": "~52.0.0",
     "expo-status-bar": "~2.0.0",
-    "lucide-react-native": "^0.475.0",
-    "nativewind": "^4.1.23",
     "react": "18.3.1",
     "react-native": "0.76.9",
-    "react-native-safe-area-context": "4.12.0",
-    "react-native-screens": "~4.4.0",
-    "react-native-svg": "15.8.0"
+    "react-native-webview": "13.12.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
     "babel-preset-expo": "~12.0.0",
-    "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3"
   },
   "overrides": {

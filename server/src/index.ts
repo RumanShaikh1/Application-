@@ -1,4 +1,10 @@
 import 'dotenv/config'
+// Side-effect only: installs the real node:fs-backed DataFileSystem (see
+// dataFs.ts) before any loader below runs its module-level readDataFileText/
+// listDataFiles calls. Must stay the first import in this file - ES module
+// side effects run in declaration order, and every loader needs this
+// installed before its own top-level code executes.
+import './nodeDataFs.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

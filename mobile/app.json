@@ -1,19 +1,15 @@
 {
   "expo": {
-    "name": "Decision Replay",
-    "slug": "decision-replay",
-    "scheme": "decisionreplay",
+    "name": "MarketPane",
+    "slug": "marketpane",
+    "scheme": "marketpane",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F4F1EA",
     "assetBundlePatterns": ["**/*"],
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.marketpane.decisionreplay"
-    },
     "android": {
-      "package": "com.marketpane.decisionreplay"
+      "package": "com.marketpane.app"
     }
   }
 }
