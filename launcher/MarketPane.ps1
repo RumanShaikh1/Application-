@@ -205,6 +205,26 @@ function Get-InstalledBrowsers {
             $found += [PSCustomObject]@{ Name = $info.Name; Path = $path }
         }
     }
+
+    # Opera GX is a genuinely separate app from regular Opera, but its
+    # executable is ALSO literally named opera.exe, just in a "Opera GX"
+    # install folder instead of "Opera" - it can't share a $knownBrowsers
+    # key with regular Opera above (a hashtable key can't point at two
+    # browsers), and going through the App Paths registry lookup for the
+    # shared "opera.exe" name is ambiguous when both are installed (only one
+    # can win that registry key). Checked directly by its own install paths
+    # instead, so it's found correctly regardless of whether regular Opera
+    # is also present.
+    $operaGxPaths = @(
+        "$env:LOCALAPPDATA\Programs\Opera GX\opera.exe",
+        "$env:ProgramFiles\Opera GX\opera.exe",
+        "${env:ProgramFiles(x86)}\Opera GX\opera.exe"
+    )
+    $operaGxPath = $operaGxPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($operaGxPath) {
+        $found += [PSCustomObject]@{ Name = 'Opera GX'; Path = $operaGxPath }
+    }
+
     return $found
 }
 
@@ -227,6 +247,21 @@ function Save-Config([string]$browserName, [string]$browserPath) {
 # Returns @{ Name = ...; Path = ... } or $null if the user cancelled.
 function Show-BrowserPicker {
     $installed = Get-InstalledBrowsers
+
+    # Skip the radio-button form entirely when there is only one real
+    # choice - most machines only have one browser installed, and a form
+    # full of radio buttons is an unnecessary extra step when it is not
+    # actually offering a decision. Still confirms via a plain message box
+    # so linking a browser is never silent.
+    if ($installed.Count -eq 1) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Linked to $($installed[0].Name) - the only supported browser found on this PC.`n`nWant to use a different one instead? Install it, then relaunch MarketPane - you'll get a choice next time.",
+            'MarketPane',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        return @{ Name = $installed[0].Name; Path = $installed[0].Path }
+    }
 
     # AutoScaleMode=Dpi is deliberately NOT set here: combined with the
     # process-level DPI awareness above and per-control AutoSize below, it

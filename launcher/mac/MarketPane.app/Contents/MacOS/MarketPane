@@ -207,6 +207,13 @@ detect_browsers() {
   path="$(find_app_bundle "org.mozilla.firefox" "/Applications/Firefox.app")" && printf 'Mozilla Firefox|%s|0\n' "$path"
   path="$(find_app_bundle "com.brave.Browser" "/Applications/Brave Browser.app")" && printf 'Brave|%s|1\n' "$path"
   path="$(find_app_bundle "com.operasoftware.Opera" "/Applications/Opera.app")" && printf 'Opera|%s|1\n' "$path"
+  # Opera GX is a genuinely separate app from regular Opera - its own
+  # bundle identifier and its own install path, not a variant find_app_bundle
+  # would ever match via the "com.operasoftware.Opera" lookup above. Missing
+  # this meant a Mac with only Opera GX installed (no other supported
+  # browser) hit detect_browsers' "no supported browser found" error path
+  # even though a perfectly good Chromium-based browser was right there.
+  path="$(find_app_bundle "com.operasoftware.OperaGX" "/Applications/Opera GX.app")" && printf 'Opera GX|%s|1\n' "$path"
   path="$(find_app_bundle "com.vivaldi.Vivaldi" "/Applications/Vivaldi.app")" && printf 'Vivaldi|%s|1\n' "$path"
   path="$(find_app_bundle "company.thebrowser.Browser" "/Applications/Arc.app")" && printf 'Arc|%s|1\n' "$path"
   return 0
@@ -242,7 +249,7 @@ pick_browser() {
   browsers_raw="$(detect_browsers)"
 
   if [ -z "$browsers_raw" ]; then
-    show_error 'No supported browser (Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc) was found on this Mac.\n\nInstall one, then reopen MarketPane.'
+    show_error 'No supported browser (Chrome, Edge, Firefox, Brave, Opera, Opera GX, Vivaldi, or Arc) was found on this Mac.\n\nInstall one, then reopen MarketPane.'
     return 1
   fi
 
@@ -251,6 +258,23 @@ pick_browser() {
     [ -z "$name" ] && continue
     names+=("$name")
   done <<<"$browsers_raw"
+
+  # Skip the picker dialog entirely when there is only one real choice -
+  # most Macs only have one browser installed, and an AppleScript "choose
+  # from list" window (which looks nothing like a normal macOS dialog) is
+  # an unfamiliar, slightly alarming extra step for a non-technical user
+  # when it is not actually offering a real decision. Still confirms via a
+  # plain info dialog so linking a browser is never silent.
+  if [ "${#names[@]}" -eq 1 ]; then
+    while IFS='|' read -r name path is_chromium; do
+      [ -z "$name" ] && continue
+      save_browser_config "$name" "$path" "$is_chromium"
+      local msg
+      printf -v msg 'Linked to %s - the only supported browser found on this Mac.\n\n(Want to use a different one instead? Install it, then quit and reopen MarketPane - "Change Linked Browser" will offer every one it finds.)' "$name"
+      show_info "$msg"
+      return 0
+    done <<<"$browsers_raw"
+  fi
 
   local applescript_items=""
   local n
@@ -263,7 +287,7 @@ pick_browser() {
   script="$(mktemp /tmp/marketpane-picker.XXXXXX.applescript)"
   cat >"$script" <<EOF
 set browserList to $applescript_items
-set chosen to choose from list browserList with title "MarketPane" with prompt "Choose the browser MarketPane should open."  default items {item 1 of browserList}
+set chosen to choose from list browserList with title "MarketPane" with prompt "MarketPane found more than one browser on this Mac. Pick the one it should open in - you can change this later from the MarketPane window's \"Change Linked Browser\" button." default items {item 1 of browserList}
 if chosen is false then
 	return "CANCELLED"
 else

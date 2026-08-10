@@ -74,9 +74,25 @@ This produces `extension/dist/` (manifest, background.js, content.js, content.cs
 
 **Download [MarketPane-mac.zip](https://github.com/RumanShaikh1/Application-/releases/download/mac-v1.0.0/MarketPane-mac.zip)** (~82MB, also under this repo's "Releases" tab), unzip it, and double-click `MarketPane.app` - genuinely nothing else to install, not Node.js, not this repo. A portable Node.js runtime (both Apple Silicon and Intel builds), the bundled server, the built web app, and its data fixtures are all embedded directly inside the `.app` bundle's own `Contents/Resources/` - there's no separate `npm install` step and no dependency on a repo checkout sitting next to it. This is the macOS equivalent of `launcher/MarketPane.Desktop/`'s single-exe download on Windows, and covers the same features: Decision Replay, the Simulator, Tax Understanding, the Sandbox, and Learn. The Jargon Buster browser extension is a separate concern, not included here (see "Manual run" above for building/loading it, which does still need Node.js).
 
-Unlike on Windows, there's no Xcode-free way to embed a true native webview on macOS from this repo's authoring machine (osacompile and any real native WKWebView wrapper both require running on an actual Mac), so `MarketPane.app` links a real installed browser (Chrome, Edge, Firefox, Brave, Opera, Vivaldi, or Arc - detected via Spotlight's `mdfind`, asked for once on first launch) and opens it in app mode (`--app=<url>` for Chromium browsers, a plain window for Firefox) instead of a genuinely standalone window. That's the one meaningful gap versus the Windows build - it needs a browser already present, which is true for nearly every Mac in practice.
+Unlike on Windows, there's no Xcode-free way to embed a true native webview on macOS from this repo's authoring machine (osacompile and any real native WKWebView wrapper both require running on an actual Mac), so `MarketPane.app` links a real installed browser (Chrome, Edge, Firefox, Brave, Opera, Opera GX, Vivaldi, or Arc - detected via Spotlight's `mdfind`, so it's found regardless of where it's installed) and opens it in app mode (`--app=<url>` for Chromium browsers, a plain window for Firefox) instead of a genuinely standalone window. That's the one meaningful gap versus the Windows build - it needs a browser already present, which is true for nearly every Mac in practice.
 
-Since the app isn't notarized or signed with an Apple Developer certificate, macOS Gatekeeper will likely block the first launch - **right-click `MarketPane.app` → Open**, then confirm in the dialog that appears (this bypasses Gatekeeper for this one app, once; a plain double-click the first time will just show an error with no way through). After that first right-click-Open, every launch after works with a normal double-click.
+**Linking a browser is automatic, not something you configure.** If MarketPane finds exactly one supported browser on your Mac (the common case), it links it by itself and just tells you which one - no picker, no decision to make. It only asks you to choose when it finds more than one. Per-browser, there is nothing different to do - the same automatic detection covers all of them:
+
+| Browser | What happens |
+|---|---|
+| Chrome, Edge, Firefox, Brave, Opera, Opera GX, Vivaldi, Arc | Detected automatically. If it's the only one installed, MarketPane links it and shows a one-line confirmation. If you have more than one, you'll see a single list to pick from. |
+| Any other browser (Safari, etc.) | Not currently supported for the embedded app-mode window - install one of the browsers above, or use "Manual run" below and open the app in Safari yourself. |
+
+Changed your mind about which browser to use later? Reopen MarketPane and click **Change Linked Browser** in its window - it re-scans and lets you pick again.
+
+**If macOS won't let the app open at all** ("MarketPane can't be opened because Apple cannot check it for malicious software" or similar) - this is macOS Gatekeeper blocking it because it isn't signed with a paid Apple Developer certificate, not a sign anything is actually wrong with it. Two ways through, most reliable first:
+
+1. **Open Terminal** (Spotlight search → type "Terminal" → Enter) and run, adjusting the path to wherever you unzipped it:
+   ```
+   xattr -cr /path/to/MarketPane.app
+   ```
+   Then double-click it normally - this works every time, on every macOS version.
+2. **Or:** right-click `MarketPane.app` → **Open** → confirm in the dialog. On older macOS this alone is usually enough. On recent macOS (Sequoia and later) it often just repeats the same blocked message - if so, go to **System Settings → Privacy & Security**, scroll down to find `"MarketPane" was blocked`, click **Open Anyway**, then try opening the app again.
 
 Config, the embedded server's logs, and your own `.env` (added the same way as on Windows - a real Gemini API key for the AI-powered explain/translate features, optional) all live in `~/Library/Application Support/MarketPane/`, kept separate from the read-only app bundle itself so they survive re-downloading a newer `MarketPane.app` later.
 
